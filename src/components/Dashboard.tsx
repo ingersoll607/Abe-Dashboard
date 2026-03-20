@@ -115,7 +115,7 @@ const STATIC_AGENTS: Record<
   "vp-life": {
     name: "Personal & Legal",
     icon: "Home",
-    health: "error",
+    health: "warning",
     summary:
       "Will & POA needed. Divorce attorney search pending. myclaim360 deadline expired.",
     alerts: [
