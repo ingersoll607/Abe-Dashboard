@@ -25,9 +25,11 @@ import {
   ChevronRight,
   RefreshCw,
 } from "lucide-react";
-import type { AgentStatus, ActionItem, LifeLogEntry, HealthLab, HealthMedication, HealthProvider, FinanceBill } from "@/lib/types";
+import type { AgentStatus, ActionItem, LifeLogEntry, HealthLab, HealthMedication, HealthProvider, FinanceBill, EstateItem, VehicleMaintenance } from "@/lib/types";
 import HealthTab from "@/components/HealthTab";
 import FinanceTab from "@/components/FinanceTab";
+import EstateTab from "@/components/EstateTab";
+import PropertyTab from "@/components/PropertyTab";
 import {
   getHealthColor,
   getHealthBg,
@@ -307,6 +309,8 @@ interface DashboardProps {
   healthMedications: HealthMedication[];
   healthProviders: HealthProvider[];
   financeBills: FinanceBill[];
+  estateItems: EstateItem[];
+  vehicleMaintenance: VehicleMaintenance[];
 }
 
 function HealthDot({ health }: { health: string }) {
@@ -514,6 +518,8 @@ export default function Dashboard({
   healthMedications,
   healthProviders,
   financeBills,
+  estateItems,
+  vehicleMaintenance,
 }: DashboardProps) {
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
@@ -640,6 +646,8 @@ export default function Dashboard({
           { id: "overview", label: "Overview", icon: Activity },
           { id: "health", label: "Health", icon: Heart },
           { id: "finance", label: "Finance", icon: DollarSign },
+          { id: "estate", label: "Estate", icon: Scale },
+          { id: "property", label: "Property", icon: Home },
           { id: "actions", label: "Actions", icon: Bell },
           { id: "lifelog", label: "Life Log", icon: BookOpen },
           { id: "projects", label: "Dev Queue", icon: Wrench },
@@ -760,6 +768,16 @@ export default function Dashboard({
       {/* Finance Tab */}
       {activeTab === "finance" && (
         <FinanceTab bills={financeBills} />
+      )}
+
+      {/* Estate Tab */}
+      {activeTab === "estate" && (
+        <EstateTab estateItems={estateItems} />
+      )}
+
+      {/* Property Tab */}
+      {activeTab === "property" && (
+        <PropertyTab maintenance={vehicleMaintenance} />
       )}
 
       {/* Actions Tab */}

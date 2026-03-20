@@ -8,6 +8,8 @@ import type {
   HealthMedication,
   HealthProvider,
   FinanceBill,
+  EstateItem,
+  VehicleMaintenance,
 } from "@/lib/types";
 
 export const revalidate = 30;
@@ -91,6 +93,28 @@ async function getHealthProviders(): Promise<HealthProvider[]> {
   return data || [];
 }
 
+async function getEstateItems(): Promise<EstateItem[]> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("estate_items")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error && !error.message.includes("does not exist"))
+    console.error("estate_items error:", error.message);
+  return data || [];
+}
+
+async function getVehicleMaintenance(): Promise<VehicleMaintenance[]> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("vehicle_maintenance")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error && !error.message.includes("does not exist"))
+    console.error("vehicle_maintenance error:", error.message);
+  return data || [];
+}
+
 async function getFinanceBills(): Promise<FinanceBill[]> {
   const supabase = createAdminClient();
   const { data, error } = await supabase
@@ -112,6 +136,8 @@ export default async function Home() {
     healthMedications,
     healthProviders,
     financeBills,
+    estateItems,
+    vehicleMaintenance,
   ] = await Promise.all([
     getAgentStatus(),
     getActionItems(),
@@ -121,6 +147,8 @@ export default async function Home() {
     getHealthMedications(),
     getHealthProviders(),
     getFinanceBills(),
+    getEstateItems(),
+    getVehicleMaintenance(),
   ]);
 
   return (
@@ -133,6 +161,8 @@ export default async function Home() {
       healthMedications={healthMedications}
       healthProviders={healthProviders}
       financeBills={financeBills}
+      estateItems={estateItems}
+      vehicleMaintenance={vehicleMaintenance}
     />
   );
 }
