@@ -57,3 +57,81 @@ export interface ActionItem {
   created_at: string;
   due_date: string | null;
 }
+
+// V2 Deep Drill-Down Types
+
+export interface HealthLab {
+  id: string;
+  test_date: string | null;
+  test_name: string;
+  result_value: string | null;
+  unit: string | null;
+  reference_range: string | null;
+  status: "normal" | "high" | "low" | "borderline" | null;
+  lab_provider: string | null;
+  ordering_provider: string | null;
+  panel_group: string | null;
+  source_file: string | null;
+  created_at: string;
+}
+
+export interface HealthMedication {
+  id: string;
+  medication_name: string;
+  dosage: string | null;
+  frequency: string | null;
+  prescriber: string | null;
+  start_date: string | null;
+  active: boolean;
+  source_file: string | null;
+  created_at: string;
+}
+
+export interface HealthProvider {
+  id: string;
+  provider_name: string;
+  specialty: string | null;
+  facility: string | null;
+  phone: string | null;
+  last_visit: string | null;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface FinanceBill {
+  id: string;
+  bill_name: string;
+  amount: number | null;
+  due_day: number | null;
+  category: string | null;
+  auto_pay: boolean;
+  account: string | null;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface EstateItem {
+  id: string;
+  estate: "rogers" | "ingersoll";
+  item_title: string;
+  status: "open" | "pending" | "closed";
+  priority: string | null;
+  assigned_to: string | null;
+  due_date: string | null;
+  notes: string | null;
+  last_updated: string;
+  source_file: string | null;
+  created_at: string;
+}
+
+export interface VehicleMaintenance {
+  id: string;
+  vehicle: string;
+  item: string;
+  status: "needed" | "scheduled" | "completed";
+  priority: string | null;
+  cost_estimate: number | null;
+  notes: string | null;
+  due_date: string | null;
+  created_at: string;
+}

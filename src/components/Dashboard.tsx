@@ -25,7 +25,9 @@ import {
   ChevronRight,
   RefreshCw,
 } from "lucide-react";
-import type { AgentStatus, ActionItem, LifeLogEntry } from "@/lib/types";
+import type { AgentStatus, ActionItem, LifeLogEntry, HealthLab, HealthMedication, HealthProvider, FinanceBill } from "@/lib/types";
+import HealthTab from "@/components/HealthTab";
+import FinanceTab from "@/components/FinanceTab";
 import {
   getHealthColor,
   getHealthBg,
@@ -301,6 +303,10 @@ interface DashboardProps {
   actionItems: ActionItem[];
   lifeLog: LifeLogEntry[];
   ragStats: { total: number; ingested: number };
+  healthLabs: HealthLab[];
+  healthMedications: HealthMedication[];
+  healthProviders: HealthProvider[];
+  financeBills: FinanceBill[];
 }
 
 function HealthDot({ health }: { health: string }) {
@@ -504,6 +510,10 @@ export default function Dashboard({
   actionItems,
   lifeLog,
   ragStats,
+  healthLabs,
+  healthMedications,
+  healthProviders,
+  financeBills,
 }: DashboardProps) {
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
@@ -628,6 +638,8 @@ export default function Dashboard({
       <div className="flex gap-1 mb-5 bg-[#1e1e2e] rounded-xl p-1">
         {[
           { id: "overview", label: "Overview", icon: Activity },
+          { id: "health", label: "Health", icon: Heart },
+          { id: "finance", label: "Finance", icon: DollarSign },
           { id: "actions", label: "Actions", icon: Bell },
           { id: "lifelog", label: "Life Log", icon: BookOpen },
           { id: "projects", label: "Dev Queue", icon: Wrench },
@@ -734,6 +746,20 @@ export default function Dashboard({
             ))}
           </div>
         </div>
+      )}
+
+      {/* Health Tab */}
+      {activeTab === "health" && (
+        <HealthTab
+          labs={healthLabs}
+          medications={healthMedications}
+          providers={healthProviders}
+        />
+      )}
+
+      {/* Finance Tab */}
+      {activeTab === "finance" && (
+        <FinanceTab bills={financeBills} />
       )}
 
       {/* Actions Tab */}
