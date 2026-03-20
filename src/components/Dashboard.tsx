@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import {
   Heart,
   DollarSign,
@@ -23,6 +23,7 @@ import {
   Bookmark,
   Users,
   ChevronRight,
+  RefreshCw,
 } from "lucide-react";
 import type { AgentStatus, ActionItem, LifeLogEntry } from "@/lib/types";
 import {
@@ -31,6 +32,7 @@ import {
   getPriorityColor,
   formatDate,
 } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
 
 // Static fallback data for when Supabase tables are empty
 const STATIC_AGENTS: Record<
@@ -506,6 +508,45 @@ export default function Dashboard({
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
   const [logFilter, setLogFilter] = useState("all");
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleUpdateAll = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("manual_triggers")
+        .insert({ trigger_type: "run_all", status: "pending" })
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Trigger insert failed:", error.message);
+        setRefreshing(false);
+        return;
+      }
+
+      // Poll for completion (check every 3s, timeout after 60s)
+      const triggerId = data.id;
+      let attempts = 0;
+      const poll = setInterval(async () => {
+        attempts++;
+        const { data: trigger } = await supabase
+          .from("manual_triggers")
+          .select("status")
+          .eq("id", triggerId)
+          .single();
+
+        if (trigger?.status === "done" || attempts >= 20) {
+          clearInterval(poll);
+          setRefreshing(false);
+          window.location.reload();
+        }
+      }, 3000);
+    } catch {
+      setRefreshing(false);
+    }
+  }, []);
 
   // Use live data if available, fall back to static
   const useStaticAgents = agents.length === 0;
@@ -559,7 +600,19 @@ export default function Dashboard({
       <style>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } } .animate-fadeIn { animation: fadeIn 0.3s ease; }`}</style>
 
       {/* Header */}
-      <div className="text-center mb-6">
+      <div className="text-center mb-6 relative">
+        <button
+          onClick={handleUpdateAll}
+          disabled={refreshing}
+          className="absolute right-0 top-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold border-none cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          style={{
+            background: refreshing ? "rgba(99,102,241,0.2)" : "rgba(99,102,241,0.15)",
+            color: "#818cf8",
+          }}
+        >
+          <RefreshCw size={12} className={refreshing ? "animate-spin" : ""} />
+          {refreshing ? "Updating..." : "Update All"}
+        </button>
         <div className="text-[11px] tracking-[3px] text-[#6366f1] uppercase mb-1">
           Command Center
         </div>
