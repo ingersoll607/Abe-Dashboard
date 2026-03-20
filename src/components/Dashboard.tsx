@@ -706,15 +706,19 @@ export default function Dashboard({
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <div className="text-xl font-bold text-[#8b5cf6]">629</div>
+                <div className="text-xl font-bold text-[#8b5cf6]">
+                  {ragStats.ingested || 629}
+                </div>
                 <div className="text-[10px] text-[#64748b]">
                   Files Indexed
                 </div>
               </div>
               <div>
-                <div className="text-xl font-bold text-[#6366f1]">38.9K</div>
+                <div className="text-xl font-bold text-[#6366f1]">
+                  {ragStats.total > 0 ? `${(ragStats.total / 1000).toFixed(1)}K` : "38.9K"}
+                </div>
                 <div className="text-[10px] text-[#64748b]">
-                  Search Chunks
+                  Total Tracked
                 </div>
               </div>
               <div>
@@ -725,20 +729,29 @@ export default function Dashboard({
               </div>
             </div>
             <div className="mt-3">
-              <div className="flex justify-between text-[10px] text-[#64748b] mb-1">
-                <span>Coverage: 629 of 4,913 files (13%)</span>
-                <span>~4,284 remaining</span>
-              </div>
-              <div className="h-1 bg-[#334155] rounded-sm overflow-hidden">
-                <div
-                  className="h-full rounded-sm"
-                  style={{
-                    width: "13%",
-                    background:
-                      "linear-gradient(90deg, #6366f1, #8b5cf6)",
-                  }}
-                />
-              </div>
+              {(() => {
+                const total = ragStats.total || 4913;
+                const ingested = ragStats.ingested || 629;
+                const pct = total > 0 ? Math.round((ingested / total) * 100) : 13;
+                const remaining = total - ingested;
+                return (
+                  <>
+                    <div className="flex justify-between text-[10px] text-[#64748b] mb-1">
+                      <span>Coverage: {ingested.toLocaleString()} of {total.toLocaleString()} files ({pct}%)</span>
+                      <span>~{remaining.toLocaleString()} remaining</span>
+                    </div>
+                    <div className="h-1 bg-[#334155] rounded-sm overflow-hidden">
+                      <div
+                        className="h-full rounded-sm"
+                        style={{
+                          width: `${pct}%`,
+                          background: "linear-gradient(90deg, #6366f1, #8b5cf6)",
+                        }}
+                      />
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           </div>
 
