@@ -326,9 +326,9 @@ export default function BrainGraph() {
   const highAlerts = ALERTS.filter(a => a.priority === "high");
 
   return (
-    <div className="relative w-full h-screen bg-[#0a0e1a] overflow-hidden flex">
+    <div className="relative w-full h-screen bg-[#0a0e1a] overflow-hidden flex flex-col md:flex-row">
       {/* LEFT: Glance Panel */}
-      <div className="w-[320px] h-full bg-[#0f1425] border-r border-[#1e293b] overflow-y-auto shrink-0 z-20">
+      <div className="w-full md:w-[320px] max-h-[50vh] md:max-h-full md:h-full bg-[#0f1425] border-b md:border-b-0 md:border-r border-[#1e293b] overflow-y-auto shrink-0 z-20">
         <div className="p-4">
           {/* Branding */}
           <div className="mb-4">
