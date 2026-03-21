@@ -2,7 +2,7 @@ import type { BrainGraph, BrainNode, BrainEdge } from "./graph-types";
 
 const nodes: BrainNode[] = [
   // Center
-  { id: "mike", label: "Mike Ingersoll", domain: "center", type: "center", status: "good", urgency: 1, freshness: 1, summary: "Everything Abe knows about Mike — 10 domains, 1,139 docs indexed." },
+  { id: "mike", label: "Mike", domain: "center", type: "center", status: "good", urgency: 1, freshness: 1, summary: "Everything Abe knows about Mike — 10 domains, 1,139 docs indexed." },
 
   // Domain: Health
   { id: "d-health", label: "Health", domain: "health", type: "domain", status: "attention", urgency: 0.7, freshness: 0.7, summary: "Hematocrit elevated. Free T critically low. A1C prediabetic. 8 providers on file.", children: ["health-hematocrit","health-testosterone","health-a1c","health-bp","health-cpap","health-hypothyroid","health-gout","health-provider"] },
@@ -13,7 +13,7 @@ const nodes: BrainNode[] = [
   { id: "health-cpap", label: "CPAP Compliance", domain: "health", type: "entity", status: "attention", urgency: 0.5, freshness: 0.6, summary: "4-6 hrs/night. Needs improvement." },
   { id: "health-hypothyroid", label: "Hypothyroidism", domain: "health", type: "entity", status: "good", urgency: 0.3, freshness: 0.6, summary: "Managed. Levothyroxine 200mcg daily." },
   { id: "health-gout", label: "Gout", domain: "health", type: "entity", status: "good", urgency: 0.2, freshness: 0.6, summary: "Managed. Allopurinol 300mg daily." },
-  { id: "health-provider", label: "Christine Stallings, NP", domain: "health", type: "entity", status: "neutral", urgency: 0.2, freshness: 0.5, summary: "Primary Care. The Carolina Clinic, Greenville NC." },
+  { id: "health-provider", label: "Primary Care NP", domain: "health", type: "entity", status: "neutral", urgency: 0.2, freshness: 0.5, summary: "Primary care provider on file." },
 
   // Domain: Finance
   { id: "d-finance", label: "Finance", domain: "finance", type: "domain", status: "good", urgency: 0.4, freshness: 0.9, summary: "FICO 836. 36 bills. $4,200/mo. 4% utilization. 2 manual payments.", children: ["fin-fico","fin-usaa-checking","fin-usaa-savings","fin-chase","fin-ozk-loan","fin-hyundai","fin-chase-cc","fin-verizon","fin-cubesmart"] },
@@ -21,8 +21,8 @@ const nodes: BrainNode[] = [
   { id: "fin-usaa-checking", label: "USAA Checking", domain: "finance", type: "entity", status: "good", urgency: 0.2, freshness: 0.8, summary: "Primary banking, auto-pay source." },
   { id: "fin-usaa-savings", label: "USAA Savings", domain: "finance", type: "entity", status: "good", urgency: 0.1, freshness: 0.7, summary: "Emergency fund." },
   { id: "fin-chase", label: "Chase Checking", domain: "finance", type: "entity", status: "good", urgency: 0.2, freshness: 0.8, summary: "Debit 4069. CubeSmart auto-pay." },
-  { id: "fin-ozk-loan", label: "OZK RV Loan", domain: "finance", type: "entity", status: "neutral", urgency: 0.4, freshness: 0.7, summary: "$751.91/mo. Bank OZK mortgage." },
-  { id: "fin-hyundai", label: "Palisade Loan", domain: "finance", type: "entity", status: "neutral", urgency: 0.4, freshness: 0.7, summary: "$736.99/mo. $38,532 remaining. Chrissy reimburses $1,000/mo." },
+  { id: "fin-ozk-loan", label: "OZK RV Loan", domain: "finance", type: "entity", status: "neutral", urgency: 0.4, freshness: 0.7, summary: "RV loan active. Monthly payment." },
+  { id: "fin-hyundai", label: "Palisade Loan", domain: "finance", type: "entity", status: "neutral", urgency: 0.4, freshness: 0.7, summary: "Auto loan active. Monthly payment. Partner reimburses." },
   { id: "fin-chase-cc", label: "Chase CC Manual", domain: "finance", type: "entity", status: "attention", urgency: 0.6, freshness: 0.9, summary: "Manual payment ~18th monthly." },
   { id: "fin-verizon", label: "Verizon $245-267", domain: "finance", type: "entity", status: "good", urgency: 0.2, freshness: 0.9, summary: "ACH Chase 8622. Auto." },
   { id: "fin-cubesmart", label: "CubeSmart $181", domain: "finance", type: "entity", status: "good", urgency: 0.2, freshness: 0.9, summary: "Auto-pay Chase 4069." },
@@ -30,9 +30,9 @@ const nodes: BrainNode[] = [
   // Domain: Estate Rogers
   { id: "d-estate-rogers", label: "Estate: Rogers", domain: "estate", type: "domain", status: "attention", urgency: 0.8, freshness: 0.7, summary: "ACTIVE probate. Year's Support pending. OPM 7+ months. Hospital negligence.", children: ["er-opm","er-herman","er-years-support","er-whitty","er-mom-accounts","er-mom-loan"] },
   { id: "er-opm", label: "OPM/FERS Benefit", domain: "estate", type: "entity", status: "critical", urgency: 1, freshness: 0.3, summary: "7+ months pending. No response. Congressional inquiry needed." },
-  { id: "er-herman", label: "David Herman", domain: "estate", type: "entity", status: "critical", urgency: 0.8, freshness: 0.3, summary: "No follow-up since Feb 6. Hospital negligence." },
+  { id: "er-herman", label: "Estate Attorney", domain: "estate", type: "entity", status: "critical", urgency: 0.8, freshness: 0.3, summary: "No follow-up since Feb 6. Hospital negligence." },
   { id: "er-years-support", label: "Year's Support", domain: "estate", type: "entity", status: "attention", urgency: 0.7, freshness: 0.6, summary: "Petition status unknown. Fact reference sent to Gail." },
-  { id: "er-whitty", label: "Jake Whitty / Hostle", domain: "estate", type: "entity", status: "attention", urgency: 0.7, freshness: 0.5, summary: "Hospital negligence. Callback needed." },
+  { id: "er-whitty", label: "Negligence Attorney", domain: "estate", type: "entity", status: "attention", urgency: 0.7, freshness: 0.5, summary: "Hospital negligence. Callback needed." },
   { id: "er-mom-accounts", label: "Cancel Art's Accounts", domain: "estate", type: "entity", status: "attention", urgency: 0.5, freshness: 0.4, summary: "Mom's to-do." },
   { id: "er-mom-loan", label: "Home Loan Transfer", domain: "estate", type: "entity", status: "attention", urgency: 0.5, freshness: 0.4, summary: "Get out of Art's name." },
 
@@ -45,16 +45,16 @@ const nodes: BrainNode[] = [
 
   // Domain: Legal / Personal
   { id: "d-legal", label: "Personal & Legal", domain: "legal", type: "domain", status: "critical", urgency: 0.9, freshness: 0.5, summary: "Will & POA MISSING. Divorce pending. MVA settlement unresolved.", children: ["legal-will","legal-divorce","legal-mva","legal-nc-atty"] },
-  { id: "legal-will", label: "Will & POA", domain: "legal", type: "entity", status: "critical", urgency: 1, freshness: 0, summary: "NONE ON FILE. Must create ASAP. Nicole Loughlin offered $250 off." },
+  { id: "legal-will", label: "Will & POA", domain: "legal", type: "entity", status: "critical", urgency: 1, freshness: 0, summary: "NONE ON FILE. Must create ASAP. Attorney offered discount on estate planning." },
   { id: "legal-divorce", label: "Divorce", domain: "legal", type: "entity", status: "attention", urgency: 0.7, freshness: 0.6, summary: "Hostel Law (Jay Whitley). Spoke 3/18. Discovery pending." },
   { id: "legal-mva", label: "MVA Settlement", domain: "legal", type: "entity", status: "attention", urgency: 0.7, freshness: 0.5, summary: "$3K + $8K medical. Rawlings/BCBS subrogation. DO NOT SIGN YET." },
   { id: "legal-nc-atty", label: "NC Divorce Attorney", domain: "legal", type: "entity", status: "attention", urgency: 0.6, freshness: 0.5, summary: "Research scheduled 3/24." },
 
   // Domain: Property
   { id: "d-property", label: "Property", domain: "property", type: "domain", status: "attention", urgency: 0.6, freshness: 0.6, summary: "Home, RV (7 repairs), Palisade, motorcycle. Storage unit.", children: ["prop-home","prop-rv","prop-palisade","prop-motorcycle","prop-storage","prop-rv-lot"] },
-  { id: "prop-home", label: "1603 Bobwhite Ct", domain: "property", type: "entity", status: "good", urgency: 0.3, freshness: 0.7, summary: "Greenville NC. Bank OZK $751/mo. $93K remaining." },
+  { id: "prop-home", label: "Home Address", domain: "property", type: "entity", status: "good", urgency: 0.3, freshness: 0.7, summary: "Primary residence. Mortgage active." },
   { id: "prop-rv", label: "RV Paradigm 2022", domain: "property", type: "entity", status: "attention", urgency: 0.7, freshness: 0.5, summary: "7 repairs pending. Rear AC, canopy, dark tank valve, ceiling, awning, bathroom." },
-  { id: "prop-palisade", label: "2024 Palisade", domain: "property", type: "entity", status: "attention", urgency: 0.5, freshness: 0.6, summary: "Chrissy drives. $737/mo. MVA settlement pending." },
+  { id: "prop-palisade", label: "2024 Palisade", domain: "property", type: "entity", status: "attention", urgency: 0.5, freshness: 0.6, summary: "Partner drives. MVA settlement pending." },
   { id: "prop-motorcycle", label: "Motorcycle", domain: "property", type: "entity", status: "attention", urgency: 0.4, freshness: 0.4, summary: "NC registration needed." },
   { id: "prop-storage", label: "CubeSmart F17", domain: "property", type: "entity", status: "attention", urgency: 0.4, freshness: 0.5, summary: "$181/mo. Items need removal." },
   { id: "prop-rv-lot", label: "Treeside Lot 13B", domain: "property", type: "entity", status: "neutral", urgency: 0.2, freshness: 0.5, summary: "RV lot lease. $352-426/mo." },
@@ -70,9 +70,9 @@ const nodes: BrainNode[] = [
 
   // Domain: Communications
   { id: "d-comms", label: "Communications", domain: "comms", type: "domain", status: "good", urgency: 0.3, freshness: 1, summary: "5 email accounts. Telegram active. Auto-filing every 4hrs.", children: ["comms-icloud","comms-gmail-home","comms-gmail-work","comms-telegram","comms-unread"] },
-  { id: "comms-icloud", label: "iCloud Mail", domain: "comms", type: "entity", status: "good", urgency: 0.1, freshness: 1, summary: "mike_ingersoll@icloud.com. Primary personal." },
-  { id: "comms-gmail-home", label: "Gmail (Home)", domain: "comms", type: "entity", status: "good", urgency: 0.1, freshness: 1, summary: "michael.ingersoll.home@gmail.com." },
-  { id: "comms-gmail-work", label: "Gmail (Work)", domain: "comms", type: "entity", status: "good", urgency: 0.1, freshness: 1, summary: "m.ingersoll.work@gmail.com. DoD." },
+  { id: "comms-icloud", label: "iCloud Mail", domain: "comms", type: "entity", status: "good", urgency: 0.1, freshness: 1, summary: "****@icloud.com. Primary personal." },
+  { id: "comms-gmail-home", label: "Gmail (Home)", domain: "comms", type: "entity", status: "good", urgency: 0.1, freshness: 1, summary: "****@gmail.com." },
+  { id: "comms-gmail-work", label: "Gmail (Work)", domain: "comms", type: "entity", status: "good", urgency: 0.1, freshness: 1, summary: "****@work.com. DoD." },
   { id: "comms-telegram", label: "Telegram Bot", domain: "comms", type: "entity", status: "good", urgency: 0.2, freshness: 1, summary: "@Abe_mike_bot. Alerts + briefings." },
   { id: "comms-unread", label: "2 Unread Emails", domain: "comms", type: "entity", status: "attention", urgency: 0.4, freshness: 1, summary: "Check inbox." },
 ];
@@ -175,7 +175,7 @@ export const ALERTS = [
   { text: "Free Testosterone critically low", domain: "Health", priority: "critical" as const, nodeId: "health-testosterone" },
   { text: "Hematocrit elevated (50.2%)", domain: "Health", priority: "critical" as const, nodeId: "health-hematocrit" },
   { text: "OPM/FERS — 7+ months pending", domain: "Estate", priority: "high" as const, nodeId: "er-opm" },
-  { text: "David Herman — no follow-up since Feb 6", domain: "Estate", priority: "high" as const, nodeId: "er-herman" },
+  { text: "Estate attorney — no follow-up", domain: "Estate", priority: "high" as const, nodeId: "er-herman" },
   { text: "Divorce discovery pending", domain: "Legal", priority: "high" as const, nodeId: "legal-divorce" },
 ];
 
