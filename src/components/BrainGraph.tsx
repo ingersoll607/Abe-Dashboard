@@ -5,7 +5,8 @@ import * as d3 from "d3";
 import type { BrainNode, BrainEdge, BrainGraph } from "@/lib/graph-types";
 import { DOMAIN_COLORS, STATUS_COLORS, NODE_SIZE } from "@/lib/graph-types";
 import { MOCK_GRAPH, ALERTS } from "@/lib/mock-graph-data";
-import { AlertTriangle, ChevronRight } from "lucide-react";
+import { AlertTriangle, ChevronRight, Wifi, WifiOff } from "lucide-react";
+import { getHealthSummary, type HealthSummary } from "@/lib/api-client";
 
 interface SimNode extends BrainNode, d3.SimulationNodeDatum {}
 interface SimEdge extends d3.SimulationLinkDatum<SimNode> {
@@ -43,6 +44,62 @@ export default function BrainGraph() {
   const [hoveredNode, setHoveredNode] = useState<BrainNode | null>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
   const [expandedDomains, setExpandedDomains] = useState<Set<string>>(new Set());
+  const [liveHealth, setLiveHealth] = useState<HealthSummary | null>(null);
+  const [isLive, setIsLive] = useState(false);
+
+  // Fetch live health data from Express API
+  useEffect(() => {
+    getHealthSummary().then(data => {
+      if (data) {
+        setLiveHealth(data);
+        setIsLive(true);
+      }
+    });
+  }, []);
+
+  // Override mock health nodes with live data when available
+  const graphData = (() => {
+    if (!liveHealth) return MOCK_GRAPH;
+
+    const updatedNodes = MOCK_GRAPH.nodes.map(node => {
+      // Update health domain node with live stats
+      if (node.id === "d-health") {
+        return {
+          ...node,
+          summary: `${liveHealth.labCount} labs (${liveHealth.flaggedLabCount} flagged), ${liveHealth.activeMedCount} active meds, ${liveHealth.activeConditionCount} conditions monitored, ${liveHealth.providerCount} providers`,
+        };
+      }
+      // Update specific health entity nodes with live data
+      if (node.id === "health-hematocrit") {
+        const hct = liveHealth.flaggedLabs.find(l => l.test_name.toLowerCase().includes("hematocrit") || l.test_name.includes("HCT"));
+        if (hct) return { ...node, summary: `${hct.test_name}: ${hct.result_value} ${hct.unit} [${hct.status}]` };
+      }
+      if (node.id === "health-testosterone") {
+        const t = liveHealth.flaggedLabs.find(l => l.test_name.toLowerCase().includes("testosterone"));
+        if (t) return { ...node, summary: `${t.test_name}: ${t.result_value} ${t.unit} [${t.status}]` };
+      }
+      if (node.id === "h-labs" || node.id === "health-a1c") {
+        const a1c = liveHealth.flaggedLabs.find(l => l.test_name.toLowerCase().includes("a1c") || l.test_name.includes("HBA1C"));
+        if (a1c && node.id === "health-a1c") return { ...node, summary: `${a1c.test_name}: ${a1c.result_value} ${a1c.unit} [${a1c.status}]` };
+      }
+      // Update conditions
+      if (node.id === "health-hypothyroid") {
+        const hypo = liveHealth.activeConditions.find(c => c.condition_name.toLowerCase().includes("hypothyroid"));
+        if (hypo) return { ...node, summary: `${hypo.condition_name}: ${hypo.status}. ${hypo.treatment || ""}` };
+      }
+      if (node.id === "health-gout") {
+        const gout = liveHealth.activeConditions.find(c => c.condition_name.toLowerCase().includes("gout"));
+        if (gout) return { ...node, summary: `${gout.condition_name}: ${gout.status}. ${gout.treatment || ""}` };
+      }
+      if (node.id === "health-cpap") {
+        const osa = liveHealth.activeConditions.find(c => c.condition_name.toLowerCase().includes("sleep"));
+        if (osa) return { ...node, summary: `${osa.condition_name}: ${osa.notes || osa.treatment || ""}` };
+      }
+      return node;
+    });
+
+    return { ...MOCK_GRAPH, nodes: updatedNodes };
+  })();
 
   const toggleDomain = useCallback((domainId: string) => {
     setExpandedDomains(prev => {
@@ -95,16 +152,16 @@ export default function BrainGraph() {
     const graphWidth = width - leftPanelWidth - sidebarWidth;
 
     // Filter nodes based on expanded domains — collapsed = center + domains only
-    const visibleNodes = MOCK_GRAPH.nodes.filter((n) => {
+    const visibleNodes = graphData.nodes.filter((n) => {
       if (n.type === "center" || n.type === "domain") return true;
       // Show entity if its parent domain is expanded
-      const parentDomain = MOCK_GRAPH.nodes.find(
+      const parentDomain = graphData.nodes.find(
         d => d.type === "domain" && d.children?.includes(n.id)
       );
       return parentDomain ? expandedDomains.has(parentDomain.id) : false;
     });
     const visibleIds = new Set(visibleNodes.map(n => n.id));
-    const visibleEdges = MOCK_GRAPH.edges.filter(
+    const visibleEdges = graphData.edges.filter(
       e => visibleIds.has(e.source) && visibleIds.has(e.target)
     );
 
@@ -343,12 +400,12 @@ export default function BrainGraph() {
     return () => {
       simulation.stop();
     };
-  }, [dimensions, selectedNode, expandedDomains]);
+  }, [dimensions, selectedNode, expandedDomains, graphData]);
 
   const activeNode = selectedNode || hoveredNode;
 
   // Domain summaries for glance panel
-  const domainNodes = MOCK_GRAPH.nodes.filter(n => n.type === "domain");
+  const domainNodes = graphData.nodes.filter(n => n.type === "domain");
   const criticalAlerts = ALERTS.filter(a => a.priority === "critical");
   const highAlerts = ALERTS.filter(a => a.priority === "high");
 
@@ -365,8 +422,13 @@ export default function BrainGraph() {
             <h1 className="text-2xl font-bold bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] bg-clip-text text-transparent">
               ABE
             </h1>
-            <div className="text-[10px] text-[#475569] mt-1">
-              {MOCK_GRAPH.metadata.nodeCount} data points · {MOCK_GRAPH.metadata.criticalCount} critical
+            <div className="text-[10px] text-[#475569] mt-1 flex items-center gap-2">
+              {graphData.metadata.nodeCount} data points · {graphData.metadata.criticalCount} critical
+              {isLive ? (
+                <span className="flex items-center gap-1 text-[#10b981]"><Wifi size={10} /> LIVE</span>
+              ) : (
+                <span className="flex items-center gap-1 text-[#64748b]"><WifiOff size={10} /> Mock</span>
+              )}
             </div>
           </div>
 
@@ -380,7 +442,7 @@ export default function BrainGraph() {
                 <button
                   key={i}
                   onClick={() => {
-                    const node = MOCK_GRAPH.nodes.find(n => n.id === alert.nodeId);
+                    const node = graphData.nodes.find(n => n.id === alert.nodeId);
                     if (node) { setSelectedNode(node); zoomToNode(alert.nodeId); }
                   }}
                   className="w-full text-left mb-1.5 px-3 py-2 rounded-lg border-none cursor-pointer transition-all hover:brightness-125"
@@ -403,7 +465,7 @@ export default function BrainGraph() {
                 <button
                   key={i}
                   onClick={() => {
-                    const node = MOCK_GRAPH.nodes.find(n => n.id === alert.nodeId);
+                    const node = graphData.nodes.find(n => n.id === alert.nodeId);
                     if (node) { setSelectedNode(node); zoomToNode(alert.nodeId); }
                   }}
                   className="w-full text-left mb-1.5 px-3 py-2 rounded-lg border-none cursor-pointer transition-all hover:brightness-125"
@@ -423,10 +485,10 @@ export default function BrainGraph() {
             </div>
             <div className="grid grid-cols-2 gap-1.5">
               {domainNodes.map(domain => {
-                const childCount = MOCK_GRAPH.nodes.filter(
+                const childCount = graphData.nodes.filter(
                   n => n.type === "entity" && n.domain === domain.domain
                 ).length;
-                const alertCount = MOCK_GRAPH.nodes.filter(
+                const alertCount = graphData.nodes.filter(
                   n => n.domain === domain.domain && (n.status === "critical" || n.status === "attention")
                 ).length;
                 const color = DOMAIN_COLORS[domain.domain] || "#64748b";
@@ -612,7 +674,7 @@ export default function BrainGraph() {
               <div className="text-[10px] text-[#64748b] uppercase tracking-wider mb-2">
                 Connected To
               </div>
-              {MOCK_GRAPH.edges
+              {graphData.edges
                 .filter(
                   (e) =>
                     e.source === selectedNode.id ||
@@ -621,7 +683,7 @@ export default function BrainGraph() {
                 .map((e) => {
                   const otherId =
                     e.source === selectedNode.id ? e.target : e.source;
-                  const otherNode = MOCK_GRAPH.nodes.find(
+                  const otherNode = graphData.nodes.find(
                     (n) => n.id === otherId
                   );
                   if (!otherNode) return null;
