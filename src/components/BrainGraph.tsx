@@ -42,6 +42,16 @@ export default function BrainGraph() {
   const [selectedNode, setSelectedNode] = useState<BrainNode | null>(null);
   const [hoveredNode, setHoveredNode] = useState<BrainNode | null>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
+  const [expandedDomains, setExpandedDomains] = useState<Set<string>>(new Set());
+
+  const toggleDomain = useCallback((domainId: string) => {
+    setExpandedDomains(prev => {
+      const next = new Set(prev);
+      if (next.has(domainId)) next.delete(domainId);
+      else next.add(domainId);
+      return next;
+    });
+  }, []);
 
   const zoomToNode = useCallback((nodeId: string) => {
     if (!svgRef.current || !zoomRef.current) return;
@@ -84,9 +94,23 @@ export default function BrainGraph() {
     const sidebarWidth = selectedNode ? 350 : 0;
     const graphWidth = width - leftPanelWidth - sidebarWidth;
 
-    // Deep copy nodes/edges for D3 mutation
-    const nodes: SimNode[] = MOCK_GRAPH.nodes.map((n) => ({ ...n }));
-    const edges: SimEdge[] = MOCK_GRAPH.edges.map((e) => ({
+    // Filter nodes based on expanded domains — collapsed = center + domains only
+    const visibleNodes = MOCK_GRAPH.nodes.filter((n) => {
+      if (n.type === "center" || n.type === "domain") return true;
+      // Show entity if its parent domain is expanded
+      const parentDomain = MOCK_GRAPH.nodes.find(
+        d => d.type === "domain" && d.children?.includes(n.id)
+      );
+      return parentDomain ? expandedDomains.has(parentDomain.id) : false;
+    });
+    const visibleIds = new Set(visibleNodes.map(n => n.id));
+    const visibleEdges = MOCK_GRAPH.edges.filter(
+      e => visibleIds.has(e.source) && visibleIds.has(e.target)
+    );
+
+    // Deep copy for D3 mutation
+    const nodes: SimNode[] = visibleNodes.map((n) => ({ ...n }));
+    const edges: SimEdge[] = visibleEdges.map((e) => ({
       ...e,
       source: e.source,
       target: e.target,
@@ -265,6 +289,9 @@ export default function BrainGraph() {
     // Interactions
     node
       .on("click", (_event, d) => {
+        if (d.type === "domain") {
+          toggleDomain(d.id);
+        }
         setSelectedNode((prev) => (prev?.id === d.id ? null : d));
       })
       .on("mouseenter", (_event, d) => {
@@ -316,7 +343,7 @@ export default function BrainGraph() {
     return () => {
       simulation.stop();
     };
-  }, [dimensions, selectedNode]);
+  }, [dimensions, selectedNode, expandedDomains]);
 
   const activeNode = selectedNode || hoveredNode;
 
