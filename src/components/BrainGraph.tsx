@@ -4,7 +4,8 @@ import { useRef, useEffect, useState, useCallback } from "react";
 import * as d3 from "d3";
 import type { BrainNode, BrainEdge, BrainGraph } from "@/lib/graph-types";
 import { DOMAIN_COLORS, STATUS_COLORS, NODE_SIZE } from "@/lib/graph-types";
-import { MOCK_GRAPH } from "@/lib/mock-graph-data";
+import { MOCK_GRAPH, ALERTS } from "@/lib/mock-graph-data";
+import { AlertTriangle, ChevronRight } from "lucide-react";
 
 interface SimNode extends BrainNode, d3.SimulationNodeDatum {}
 interface SimEdge extends d3.SimulationLinkDatum<SimNode> {
@@ -296,8 +297,30 @@ export default function BrainGraph() {
 
   return (
     <div className="relative w-full h-screen bg-[#0a0e1a] overflow-hidden">
+      {/* Alerts Banner */}
+      <div className="absolute top-0 left-0 right-0 z-20 bg-[rgba(239,68,68,0.08)] border-b border-[rgba(239,68,68,0.2)] px-4 py-2 flex items-center gap-3 overflow-x-auto">
+        <AlertTriangle size={14} color="#ef4444" className="shrink-0" />
+        {ALERTS.map((alert, i) => (
+          <button
+            key={i}
+            onClick={() => {
+              const node = MOCK_GRAPH.nodes.find(n => n.id === alert.nodeId);
+              if (node) setSelectedNode(node);
+            }}
+            className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-md border-none cursor-pointer text-[11px] font-medium transition-all hover:brightness-125"
+            style={{
+              background: alert.priority === "critical" ? "rgba(239,68,68,0.15)" : "rgba(245,158,11,0.15)",
+              color: alert.priority === "critical" ? "#fca5a5" : "#fbbf24",
+            }}
+          >
+            {alert.text}
+            <ChevronRight size={10} className="opacity-50" />
+          </button>
+        ))}
+      </div>
+
       {/* Header */}
-      <div className="absolute top-0 left-0 right-0 z-10 p-4 bg-gradient-to-b from-[#0a0e1a] to-transparent pointer-events-none">
+      <div className="absolute top-10 left-0 right-0 z-10 p-4 bg-gradient-to-b from-[#0a0e1a] to-transparent pointer-events-none">
         <div className="flex justify-between items-start pointer-events-auto">
           <div>
             <div className="text-[10px] tracking-[3px] text-[#6366f1] uppercase">
