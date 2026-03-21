@@ -49,7 +49,7 @@ export default function BrainGraph() {
     if (!node || node.x === undefined || node.y === undefined) return;
     const svg = d3.select(svgRef.current);
     const sidebarWidth = 350;
-    const graphWidth = dimensions.width - sidebarWidth;
+    const graphWidth = dimensions.width - 320 - sidebarWidth;
     svg.transition().duration(750).call(
       zoomRef.current.transform,
       d3.zoomIdentity
@@ -80,8 +80,9 @@ export default function BrainGraph() {
     svg.selectAll("*").remove();
 
     const { width, height } = dimensions;
+    const leftPanelWidth = 320;
     const sidebarWidth = selectedNode ? 350 : 0;
-    const graphWidth = width - sidebarWidth;
+    const graphWidth = width - leftPanelWidth - sidebarWidth;
 
     // Deep copy nodes/edges for D3 mutation
     const nodes: SimNode[] = MOCK_GRAPH.nodes.map((n) => ({ ...n }));
@@ -319,61 +320,134 @@ export default function BrainGraph() {
 
   const activeNode = selectedNode || hoveredNode;
 
-  return (
-    <div className="relative w-full h-screen bg-[#0a0e1a] overflow-hidden">
-      {/* Alerts Banner */}
-      <div className="absolute top-0 left-0 right-0 z-20 bg-[rgba(239,68,68,0.08)] border-b border-[rgba(239,68,68,0.2)] px-4 py-2 flex items-center gap-3 overflow-x-auto">
-        <AlertTriangle size={14} color="#ef4444" className="shrink-0" />
-        {ALERTS.map((alert, i) => (
-          <button
-            key={i}
-            onClick={() => {
-              const node = MOCK_GRAPH.nodes.find(n => n.id === alert.nodeId);
-              if (node) {
-                setSelectedNode(node);
-                zoomToNode(alert.nodeId);
-              }
-            }}
-            className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-md border-none cursor-pointer text-[11px] font-medium transition-all hover:brightness-125"
-            style={{
-              background: alert.priority === "critical" ? "rgba(239,68,68,0.15)" : "rgba(245,158,11,0.15)",
-              color: alert.priority === "critical" ? "#fca5a5" : "#fbbf24",
-            }}
-          >
-            {alert.text}
-            <ChevronRight size={10} className="opacity-50" />
-          </button>
-        ))}
-      </div>
+  // Domain summaries for glance panel
+  const domainNodes = MOCK_GRAPH.nodes.filter(n => n.type === "domain");
+  const criticalAlerts = ALERTS.filter(a => a.priority === "critical");
+  const highAlerts = ALERTS.filter(a => a.priority === "high");
 
-      {/* Header */}
-      <div className="absolute top-10 left-0 right-0 z-10 p-4 bg-gradient-to-b from-[#0a0e1a] to-transparent pointer-events-none">
-        <div className="flex justify-between items-start pointer-events-auto">
-          <div>
+  return (
+    <div className="relative w-full h-screen bg-[#0a0e1a] overflow-hidden flex">
+      {/* LEFT: Glance Panel */}
+      <div className="w-[320px] h-full bg-[#0f1425] border-r border-[#1e293b] overflow-y-auto shrink-0 z-20">
+        <div className="p-4">
+          {/* Branding */}
+          <div className="mb-4">
             <div className="text-[10px] tracking-[3px] text-[#6366f1] uppercase">
               Open Brain
             </div>
             <h1 className="text-2xl font-bold bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] bg-clip-text text-transparent">
               ABE
             </h1>
-          </div>
-          <div className="flex gap-2">
-            {MOCK_GRAPH.metadata.criticalCount > 0 && (
-              <div className="px-3 py-1.5 rounded-lg bg-[rgba(239,68,68,0.15)] text-[#ef4444] text-[11px] font-semibold">
-                {MOCK_GRAPH.metadata.criticalCount} Critical
-              </div>
-            )}
-            {MOCK_GRAPH.metadata.attentionCount > 0 && (
-              <div className="px-3 py-1.5 rounded-lg bg-[rgba(245,158,11,0.15)] text-[#f59e0b] text-[11px] font-semibold">
-                {MOCK_GRAPH.metadata.attentionCount} Attention
-              </div>
-            )}
-            <div className="px-3 py-1.5 rounded-lg bg-[rgba(99,102,241,0.15)] text-[#818cf8] text-[11px] font-semibold">
-              {MOCK_GRAPH.metadata.nodeCount} Nodes
+            <div className="text-[10px] text-[#475569] mt-1">
+              {MOCK_GRAPH.metadata.nodeCount} data points · {MOCK_GRAPH.metadata.criticalCount} critical
             </div>
+          </div>
+
+          {/* What's On Fire */}
+          {criticalAlerts.length > 0 && (
+            <div className="mb-4">
+              <div className="text-[10px] text-[#ef4444] uppercase tracking-wider font-semibold mb-2 flex items-center gap-1.5">
+                <AlertTriangle size={11} /> Needs Action Now
+              </div>
+              {criticalAlerts.map((alert, i) => (
+                <button
+                  key={i}
+                  onClick={() => {
+                    const node = MOCK_GRAPH.nodes.find(n => n.id === alert.nodeId);
+                    if (node) { setSelectedNode(node); zoomToNode(alert.nodeId); }
+                  }}
+                  className="w-full text-left mb-1.5 px-3 py-2 rounded-lg border-none cursor-pointer transition-all hover:brightness-125"
+                  style={{ background: "rgba(239,68,68,0.1)", borderLeft: "3px solid #ef4444" }}
+                >
+                  <div className="text-[12px] text-[#fca5a5] font-medium">{alert.text}</div>
+                  <div className="text-[9px] text-[#64748b] mt-0.5">{alert.domain}</div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* High Priority */}
+          {highAlerts.length > 0 && (
+            <div className="mb-4">
+              <div className="text-[10px] text-[#f59e0b] uppercase tracking-wider font-semibold mb-2">
+                Attention Needed
+              </div>
+              {highAlerts.map((alert, i) => (
+                <button
+                  key={i}
+                  onClick={() => {
+                    const node = MOCK_GRAPH.nodes.find(n => n.id === alert.nodeId);
+                    if (node) { setSelectedNode(node); zoomToNode(alert.nodeId); }
+                  }}
+                  className="w-full text-left mb-1.5 px-3 py-2 rounded-lg border-none cursor-pointer transition-all hover:brightness-125"
+                  style={{ background: "rgba(245,158,11,0.06)", borderLeft: "3px solid #f59e0b" }}
+                >
+                  <div className="text-[12px] text-[#fbbf24] font-medium">{alert.text}</div>
+                  <div className="text-[9px] text-[#64748b] mt-0.5">{alert.domain}</div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Domain Summary Cards */}
+          <div className="mb-4">
+            <div className="text-[10px] text-[#64748b] uppercase tracking-wider font-semibold mb-2">
+              Life Domains
+            </div>
+            <div className="grid grid-cols-2 gap-1.5">
+              {domainNodes.map(domain => {
+                const childCount = MOCK_GRAPH.nodes.filter(
+                  n => n.type === "entity" && n.domain === domain.domain
+                ).length;
+                const alertCount = MOCK_GRAPH.nodes.filter(
+                  n => n.domain === domain.domain && (n.status === "critical" || n.status === "attention")
+                ).length;
+                const color = DOMAIN_COLORS[domain.domain] || "#64748b";
+                return (
+                  <button
+                    key={domain.id}
+                    onClick={() => {
+                      setSelectedNode(domain);
+                      zoomToNode(domain.id);
+                    }}
+                    className="text-left p-2.5 rounded-lg border-none cursor-pointer transition-all hover:brightness-125"
+                    style={{ background: `${color}10`, border: `1px solid ${color}20` }}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <div
+                        className="w-2 h-2 rounded-full"
+                        style={{
+                          background: STATUS_COLORS[domain.status] || color,
+                          boxShadow: domain.status === "critical" ? `0 0 6px ${STATUS_COLORS.critical}` : "none",
+                        }}
+                      />
+                      {alertCount > 0 && (
+                        <span className="text-[9px] font-bold" style={{ color: STATUS_COLORS[domain.status] || color }}>
+                          {alertCount}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-[11px] font-semibold text-[#e2e8f0]">
+                      {domain.label}
+                    </div>
+                    <div className="text-[9px] text-[#64748b]">
+                      {childCount} items
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Quick tip */}
+          <div className="text-[9px] text-[#334155] text-center mt-4">
+            Click any item to explore in the graph →
           </div>
         </div>
       </div>
+
+      {/* RIGHT: Graph Area */}
+      <div className="flex-1 relative">
 
       {/* Legend */}
       <div className="absolute bottom-4 left-4 z-10 bg-[#0f172a90] backdrop-blur rounded-lg p-3">
@@ -419,7 +493,7 @@ export default function BrainGraph() {
       {/* SVG Canvas */}
       <svg
         ref={svgRef}
-        width={dimensions.width - (selectedNode ? 350 : 0)}
+        width={dimensions.width - 320 - (selectedNode ? 350 : 0)}
         height={dimensions.height}
         className="transition-all duration-300"
       />
@@ -570,6 +644,7 @@ export default function BrainGraph() {
         }
         .animate-fadeIn { animation: fadeIn 0.3s ease; }
       `}</style>
+      </div>{/* end graph area */}
     </div>
   );
 }
