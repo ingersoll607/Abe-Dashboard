@@ -3,6 +3,7 @@ import cors from "cors";
 import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";
+import * as queries from "./db/queries.mjs";
 
 const app = express();
 const PORT = 3847;
@@ -185,18 +186,83 @@ end tell`;
   res.json({ events, count: events.length, timestamp: new Date().toISOString() });
 });
 
-// ── HEALTH: Lab results, medications, providers ──
-app.get("/api/health", (_req, res) => {
-  const ambulatory = readJSON(path.join(HEALTH_DIR, "ambulatory_extract.json"));
-  const data = {
-    labs: ambulatory?.labs || [],
-    medications: ambulatory?.medications || [],
-    vitals: ambulatory?.vitals || [],
-    diagnoses: ambulatory?.problems_diagnoses || ambulatory?.diagnoses || [],
-    encounters: ambulatory?.encounters || [],
-    timestamp: new Date().toISOString(),
-  };
-  res.json(data);
+// ── HEALTH: Full health domain from SQLite ──
+app.get("/api/health", (req, res) => {
+  console.log("HIT: /api/health SQLite route");
+  try {
+    const summary = queries.getHealthSummary();
+    console.log("SQLite summary keys:", Object.keys(summary));
+    res.json({ ...summary, timestamp: new Date().toISOString() });
+  } catch (e) {
+    console.error("Health endpoint error:", e.message, e.stack);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get("/api/health/labs", (req, res) => {
+  const { panel, status, limit } = req.query;
+  const labs = queries.getLabResults({ panel, status, limit: limit ? parseInt(limit) : 50 });
+  res.json({ labs, count: labs.length, timestamp: new Date().toISOString() });
+});
+
+app.get("/api/health/labs/flagged", (_req, res) => {
+  const flagged = queries.getFlaggedLabs();
+  res.json({ flagged, count: flagged.length, timestamp: new Date().toISOString() });
+});
+
+app.get("/api/health/labs/panels", (_req, res) => {
+  const panels = queries.getLabPanels();
+  res.json({ panels, timestamp: new Date().toISOString() });
+});
+
+app.get("/api/health/labs/trend", (req, res) => {
+  const { test } = req.query;
+  if (!test) return res.json({ error: "Missing ?test= parameter" });
+  const trend = queries.getLabTrend(test);
+  res.json({ test, trend, dataPoints: trend.length, timestamp: new Date().toISOString() });
+});
+
+app.get("/api/health/medications", (req, res) => {
+  const activeOnly = req.query.active === "true";
+  const meds = queries.getMedications({ activeOnly });
+  res.json({ medications: meds, count: meds.length, timestamp: new Date().toISOString() });
+});
+
+app.get("/api/health/conditions", (_req, res) => {
+  const conditions = queries.getConditions();
+  res.json({ conditions, count: conditions.length, timestamp: new Date().toISOString() });
+});
+
+app.get("/api/health/vitals", (req, res) => {
+  const { type, limit } = req.query;
+  const vitals = queries.getVitals({ type, limit: limit ? parseInt(limit) : 50 });
+  res.json({ vitals, count: vitals.length, timestamp: new Date().toISOString() });
+});
+
+app.get("/api/health/providers", (_req, res) => {
+  const providers = queries.getProviders();
+  res.json({ providers, count: providers.length, timestamp: new Date().toISOString() });
+});
+
+// ── RECOMMENDATIONS (Trust Ladder) ──
+app.get("/api/recommendations", (req, res) => {
+  const { status, domain } = req.query;
+  const recs = queries.getRecommendations({ status: status || "pending", domain });
+  res.json({ recommendations: recs, count: recs.length, timestamp: new Date().toISOString() });
+});
+
+// ── PATTERNS ──
+app.get("/api/patterns", (req, res) => {
+  const { category } = req.query;
+  const patterns = queries.getPatterns({ category });
+  res.json({ patterns, count: patterns.length, timestamp: new Date().toISOString() });
+});
+
+// ── DB STATS ──
+app.get("/api/stats", (_req, res) => {
+  const stats = queries.getDbStats();
+  const sources = queries.getDataSources();
+  res.json({ ...stats, dataSources: sources, timestamp: new Date().toISOString() });
 });
 
 // ── FINANCE: Bills, accounts ──
