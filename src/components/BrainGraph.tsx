@@ -15,7 +15,11 @@ interface SimEdge extends d3.SimulationLinkDatum<SimNode> {
 
 function getNodeRadius(node: BrainNode): number {
   if (node.type === "center") return NODE_SIZE.center;
-  if (node.type === "domain") return NODE_SIZE.domain;
+  if (node.type === "domain") {
+    // Scale domain nodes by urgency (reflects child alert count)
+    const base = NODE_SIZE.domain;
+    return base + node.urgency * 8; // 20-28 range
+  }
   const range = NODE_SIZE[node.type] || NODE_SIZE.entity;
   if (typeof range === "number") return range;
   return range.min + (range.max - range.min) * node.urgency;
@@ -33,9 +37,27 @@ function getNodeOpacity(node: BrainNode): number {
 
 export default function BrainGraph() {
   const svgRef = useRef<SVGSVGElement>(null);
+  const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
+  const simNodesRef = useRef<SimNode[]>([]);
   const [selectedNode, setSelectedNode] = useState<BrainNode | null>(null);
   const [hoveredNode, setHoveredNode] = useState<BrainNode | null>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
+
+  const zoomToNode = useCallback((nodeId: string) => {
+    if (!svgRef.current || !zoomRef.current) return;
+    const node = simNodesRef.current.find(n => n.id === nodeId);
+    if (!node || node.x === undefined || node.y === undefined) return;
+    const svg = d3.select(svgRef.current);
+    const sidebarWidth = 350;
+    const graphWidth = dimensions.width - sidebarWidth;
+    svg.transition().duration(750).call(
+      zoomRef.current.transform,
+      d3.zoomIdentity
+        .translate(graphWidth / 2, dimensions.height / 2)
+        .scale(1.5)
+        .translate(-node.x, -node.y)
+    );
+  }, [dimensions]);
 
   // Responsive sizing
   useEffect(() => {
@@ -116,6 +138,8 @@ export default function BrainGraph() {
       });
 
     svg.call(zoom);
+    zoomRef.current = zoom;
+    simNodesRef.current = nodes;
 
     // Glow filter for pulsing nodes
     const defs = svg.append("defs");
@@ -305,7 +329,10 @@ export default function BrainGraph() {
             key={i}
             onClick={() => {
               const node = MOCK_GRAPH.nodes.find(n => n.id === alert.nodeId);
-              if (node) setSelectedNode(node);
+              if (node) {
+                setSelectedNode(node);
+                zoomToNode(alert.nodeId);
+              }
             }}
             className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-md border-none cursor-pointer text-[11px] font-medium transition-all hover:brightness-125"
             style={{
