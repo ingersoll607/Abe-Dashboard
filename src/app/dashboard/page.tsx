@@ -107,6 +107,9 @@ export default function DashboardPage() {
                 Twin: {score}% complete
               </div>
             )}
+            <Link href="/timeline" className="px-3 py-1.5 rounded-lg bg-[rgba(99,102,241,0.15)] text-[#818cf8] text-[11px] font-semibold no-underline flex items-center gap-1">
+              <Clock size={12} /> Timeline
+            </Link>
             <Link href="/brain" className="px-3 py-1.5 rounded-lg bg-[rgba(99,102,241,0.15)] text-[#818cf8] text-[11px] font-semibold no-underline flex items-center gap-1">
               <Brain size={12} /> Open Brain
             </Link>
