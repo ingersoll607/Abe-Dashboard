@@ -359,43 +359,28 @@ app.post("/api/ingest-text", (req, res) => {
   const parsed = [];
   const lines = text.split(/[\n,;]+/).map(l => l.trim()).filter(Boolean);
 
-  // Common lab value patterns
+  // Common lab value patterns — tolerates natural speech filler words
+  // e.g., "a1c came back 5.8", "cholesterol is 210", "blood pressure was 128 over 82"
+  const FILLER = "(?:\\s+(?:is|was|came\\s+back|came\\s+in\\s+at|at|of|about|around|reading|level|result|value|score)?\\s*)";
   const labPatterns = [
-    // "A1C 5.8" or "A1C: 5.8%" or "Hemoglobin A1c 5.8"
-    /(?:hemoglobin\s*)?a1c[\s:]*(\d+\.?\d*)\s*%?/i,
-    /hba1c[\s:]*(\d+\.?\d*)/i,
-    // "cholesterol 210" or "total cholesterol: 210 mg/dL"
-    /(?:total\s+)?cholesterol[\s:]*(\d+\.?\d*)\s*(?:mg\/dl)?/i,
-    // "triglycerides 150"
-    /triglycerides?[\s:]*(\d+\.?\d*)/i,
-    // "HDL 45" or "HDL cholesterol 45"
-    /hdl[\s:]*(?:cholesterol[\s:]*)?\s*(\d+\.?\d*)/i,
-    // "LDL 120"
-    /ldl[\s:]*(?:cholesterol[\s:]*)?\s*(\d+\.?\d*)/i,
-    // "glucose 94" or "blood sugar 94"
-    /(?:glucose|blood\s*sugar|fasting\s*glucose)[\s:]*(\d+\.?\d*)/i,
-    // "hematocrit 54.1" or "HCT 54.1"
-    /(?:hematocrit|hct)[\s:]*(\d+\.?\d*)\s*%?/i,
-    // "hemoglobin 17.6" (not A1C)
-    /^hemoglobin[\s:]*(\d+\.?\d*)\s*(?:g\/dl)?$/im,
-    // "testosterone 593"
-    /^testosterone[\s:]*(\d+\.?\d*)\s*(?:ng\/dl)?$/im,
-    // "free testosterone 5.1" or "free T 5.1"
-    /free\s*(?:testosterone|t)[\s:]*(\d+\.?\d*)/i,
-    // "TSH 0.87"
-    /tsh[\s:]*(\d+\.?\d*)/i,
-    // "T4 1.89" or "free T4 1.89"
-    /(?:free\s*)?t4[\s:]*(\d+\.?\d*)/i,
-    // "PSA 0.7"
-    /psa[\s:]*(\d+\.?\d*)/i,
-    // "blood pressure 130/82" or "BP 130/82"
-    /(?:blood\s*pressure|bp)[\s:]*(\d+)\s*\/\s*(\d+)/i,
-    // "uric acid 4.5"
-    /uric\s*acid[\s:]*(\d+\.?\d*)/i,
-    // "creatinine 0.96"
-    /creatinine[\s:]*(\d+\.?\d*)/i,
-    // "weight 210" or "weight 210 lbs"
-    /weight[\s:]*(\d+\.?\d*)\s*(?:lbs?|pounds?)?/i,
+    new RegExp(`(?:hemoglobin\\s*)?a1c${FILLER}(\\d+\\.?\\d*)\\s*%?`, "i"),
+    new RegExp(`hba1c${FILLER}(\\d+\\.?\\d*)`, "i"),
+    new RegExp(`(?:total\\s+)?cholesterol${FILLER}(\\d+\\.?\\d*)`, "i"),
+    new RegExp(`triglycerides?${FILLER}(\\d+\\.?\\d*)`, "i"),
+    new RegExp(`hdl\\s*(?:cholesterol)?${FILLER}(\\d+\\.?\\d*)`, "i"),
+    new RegExp(`ldl\\s*(?:cholesterol)?${FILLER}(\\d+\\.?\\d*)`, "i"),
+    new RegExp(`(?:glucose|blood\\s*sugar|fasting\\s*glucose)${FILLER}(\\d+\\.?\\d*)`, "i"),
+    new RegExp(`(?:hematocrit|hct)${FILLER}(\\d+\\.?\\d*)\\s*%?`, "i"),
+    new RegExp(`(?<!a1c\\s.{0,20})hemoglobin${FILLER}(\\d+\\.?\\d*)`, "i"),
+    new RegExp(`(?<!free\\s)testosterone${FILLER}(\\d+\\.?\\d*)`, "i"),
+    new RegExp(`free\\s*(?:testosterone|t)${FILLER}(\\d+\\.?\\d*)`, "i"),
+    new RegExp(`tsh${FILLER}(\\d+\\.?\\d*)`, "i"),
+    new RegExp(`(?:free\\s*)?t4${FILLER}(\\d+\\.?\\d*)`, "i"),
+    new RegExp(`psa${FILLER}(\\d+\\.?\\d*)`, "i"),
+    /(?:blood\s*pressure|bp)\s+(?:is|was|came\s+back|reading)?\s*(\d+)\s*(?:\/|over)\s*(\d+)/i,
+    new RegExp(`uric\\s*acid${FILLER}(\\d+\\.?\\d*)`, "i"),
+    new RegExp(`creatinine${FILLER}(\\d+\\.?\\d*)`, "i"),
+    new RegExp(`weight${FILLER}(\\d+\\.?\\d*)\\s*(?:lbs?|pounds?)?`, "i"),
   ];
 
   const labMeta = {
@@ -480,7 +465,7 @@ app.post("/api/ingest-text", (req, res) => {
   }
 
   // Check for blood pressure (special — two values)
-  const bpMatch = fullText.match(/(?:blood\s*pressure|bp)[\s:]*(\d+)\s*\/\s*(\d+)/i);
+  const bpMatch = fullText.match(/(?:blood\s*pressure|bp)\s+(?:is|was|came\s+back|reading|at)?\s*(\d+)\s*(?:\/|over)\s*(\d+)/i);
   if (bpMatch) {
     parsed.push(
       { test_name: "Blood Pressure Systolic", result_value: bpMatch[1], unit: "mmHg", status: parseInt(bpMatch[1]) > 130 ? "high" : "normal", validation: "valid", flagged: parseInt(bpMatch[1]) > 130 },
@@ -500,14 +485,12 @@ app.post("/api/ingest-text", (req, res) => {
 });
 
 // ── INGEST CONFIRM: Write confirmed parsed data to SQLite ──
-app.post("/api/ingest-confirm", (req, res) => {
+app.post("/api/ingest-confirm", async (req, res) => {
   const { labs, date, provider, source } = req.body;
   if (!labs || !Array.isArray(labs)) return res.status(400).json({ error: "Missing labs array" });
 
   try {
-    const db = (await import("./db/queries.mjs")).default;
-    // Use direct SQLite for writes
-    const Database = (await import("better-sqlite3")).default;
+    const { default: Database } = await import("better-sqlite3");
     const dbPath = path.join(process.env.HOME, "Documents/Claude/Memory/digital-twin.db");
     const writeDb = new Database(dbPath);
 
