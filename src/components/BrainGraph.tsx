@@ -6,7 +6,7 @@ import type { BrainNode, BrainEdge, BrainGraph } from "@/lib/graph-types";
 import { DOMAIN_COLORS, STATUS_COLORS, NODE_SIZE } from "@/lib/graph-types";
 import { MOCK_GRAPH, ALERTS } from "@/lib/mock-graph-data";
 import { AlertTriangle, ChevronRight, Wifi, WifiOff } from "lucide-react";
-import { getHealthSummary, type HealthSummary } from "@/lib/api-client";
+import { getHealthSummary, getFinanceSummary, getEstateSummary, type HealthSummary, type FinanceSummary, type EstateSummary } from "@/lib/api-client";
 
 interface SimNode extends BrainNode, d3.SimulationNodeDatum {}
 interface SimEdge extends d3.SimulationLinkDatum<SimNode> {
@@ -45,15 +45,20 @@ export default function BrainGraph() {
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
   const [expandedDomains, setExpandedDomains] = useState<Set<string>>(new Set());
   const [liveHealth, setLiveHealth] = useState<HealthSummary | null>(null);
+  const [liveFinance, setLiveFinance] = useState<FinanceSummary | null>(null);
+  const [liveEstate, setLiveEstate] = useState<EstateSummary | null>(null);
   const [isLive, setIsLive] = useState(false);
 
-  // Fetch live health data from Express API
+  // Fetch live data from Express API
   useEffect(() => {
-    getHealthSummary().then(data => {
-      if (data) {
-        setLiveHealth(data);
-        setIsLive(true);
-      }
+    Promise.all([
+      getHealthSummary(),
+      getFinanceSummary(),
+      getEstateSummary(),
+    ]).then(([health, finance, estate]) => {
+      if (health) { setLiveHealth(health); setIsLive(true); }
+      if (finance) setLiveFinance(finance);
+      if (estate) setLiveEstate(estate);
     });
   }, []);
 
@@ -97,6 +102,35 @@ export default function BrainGraph() {
       }
       return node;
     });
+
+    // Finance domain enrichment
+    if (liveFinance) {
+      const finIdx = updatedNodes.findIndex(n => n.id === "d-finance");
+      if (finIdx >= 0) {
+        updatedNodes[finIdx] = {
+          ...updatedNodes[finIdx],
+          summary: `${liveFinance.billCount} bills, $${liveFinance.totalMonthly.toLocaleString()}/mo. ${liveFinance.manualCount} manual payments. ${liveFinance.fico ? 'FICO ' + liveFinance.fico : ''}`,
+        };
+      }
+    }
+
+    // Estate domain enrichment
+    if (liveEstate) {
+      const rogersIdx = updatedNodes.findIndex(n => n.id === "d-estate-rogers");
+      if (rogersIdx >= 0) {
+        updatedNodes[rogersIdx] = {
+          ...updatedNodes[rogersIdx],
+          summary: `ACTIVE. ${liveEstate.rogersCount} items, ${liveEstate.rogersOpen} open. Creditors tracked.`,
+        };
+      }
+      const ingIdx = updatedNodes.findIndex(n => n.id === "d-estate-ingersoll");
+      if (ingIdx >= 0) {
+        updatedNodes[ingIdx] = {
+          ...updatedNodes[ingIdx],
+          summary: `CLOSED. ${liveEstate.ingersollCount} items, ${liveEstate.ingersollOpen} open. Admin tasks remain.`,
+        };
+      }
+    }
 
     return { ...MOCK_GRAPH, nodes: updatedNodes };
   })();

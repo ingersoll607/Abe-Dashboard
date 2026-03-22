@@ -265,30 +265,49 @@ app.get("/api/stats", (_req, res) => {
   res.json({ ...stats, dataSources: sources, timestamp: new Date().toISOString() });
 });
 
-// ── FINANCE: Bills, accounts ──
+// ── FINANCE: Bills from SQLite ──
 app.get("/api/finance", (_req, res) => {
-  const bills = readJSON(path.join(HEALTH_DIR, "bills_extract.json")) || [];
-  const profile = readFile(path.join(MEMORY_DIR, "mike_profile.md")) || "";
-
-  // Extract FICO from profile
-  let fico = null;
-  const ficoMatch = profile.match(/FICO.*?(\d{3})/);
-  if (ficoMatch) fico = parseInt(ficoMatch[1]);
-
-  res.json({ bills, fico, billCount: bills.length, timestamp: new Date().toISOString() });
+  try {
+    const summary = queries.getFinanceSummary();
+    const profile = readFile(path.join(MEMORY_DIR, "mike_profile.md")) || "";
+    let fico = null;
+    const ficoMatch = profile.match(/FICO.*?(\d{3})/);
+    if (ficoMatch) fico = parseInt(ficoMatch[1]);
+    res.json({ ...summary, fico, timestamp: new Date().toISOString() });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-// ── ESTATE: Both estates ──
-app.get("/api/estate", (_req, res) => {
-  const status = readFile(path.join(MEMORY_DIR, "estate_status.md"));
-  const creditors = readJSON(path.join(HEALTH_DIR, "creditors_extract.json")) || [];
+app.get("/api/finance/bills", (req, res) => {
+  try {
+    const { category } = req.query;
+    const bills = queries.getBills({ category });
+    res.json({ bills, count: bills.length, timestamp: new Date().toISOString() });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 
-  res.json({
-    statusMarkdown: status,
-    creditors,
-    creditorCount: creditors.length,
-    timestamp: new Date().toISOString(),
-  });
+// ── ESTATE: From SQLite + estate_status.md ──
+app.get("/api/estate", (_req, res) => {
+  try {
+    const summary = queries.getEstateSummary();
+    const statusMd = readFile(path.join(MEMORY_DIR, "estate_status.md"));
+    res.json({ ...summary, statusMarkdown: statusMd, timestamp: new Date().toISOString() });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get("/api/estate/items", (req, res) => {
+  try {
+    const { estate, status } = req.query;
+    const items = queries.getEstateItems({ estate, status });
+    res.json({ items, count: items.length, timestamp: new Date().toISOString() });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ── PROPERTY: Vehicles, home, maintenance ──

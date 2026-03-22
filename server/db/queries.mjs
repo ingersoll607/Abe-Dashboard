@@ -99,6 +99,57 @@ export function getPatterns({ category } = {}) {
   return d.prepare("SELECT * FROM patterns ORDER BY confidence DESC").all();
 }
 
+// ── Finance Domain Queries ──
+
+export function getBills({ category } = {}) {
+  const d = getDb();
+  if (category) return d.prepare("SELECT * FROM finance_bills WHERE category = ? ORDER BY due_day").all(category);
+  return d.prepare("SELECT * FROM finance_bills ORDER BY due_day").all();
+}
+
+export function getFinanceSummary() {
+  const d = getDb();
+  const bills = d.prepare("SELECT * FROM finance_bills ORDER BY due_day").all();
+  const totalMonthly = bills.reduce((s, b) => s + (b.amount || 0), 0);
+  const autoPay = bills.filter(b => b.auto_pay);
+  const manual = bills.filter(b => !b.auto_pay);
+  return {
+    billCount: bills.length,
+    totalMonthly: Math.round(totalMonthly * 100) / 100,
+    autoPayCount: autoPay.length,
+    manualCount: manual.length,
+    manualBills: manual.map(b => ({ bill_name: b.bill_name, amount: b.amount, due_day: b.due_day })),
+    categories: [...new Set(bills.map(b => b.category).filter(Boolean))],
+  };
+}
+
+// ── Estate Domain Queries ──
+
+export function getEstateItems({ estate, status } = {}) {
+  const d = getDb();
+  let sql = "SELECT * FROM estate_items WHERE 1=1";
+  const params = [];
+  if (estate) { sql += " AND estate = ?"; params.push(estate); }
+  if (status) { sql += " AND status = ?"; params.push(status); }
+  sql += " ORDER BY CASE status WHEN 'open' THEN 1 WHEN 'pending' THEN 2 ELSE 3 END";
+  return d.prepare(sql).all(...params);
+}
+
+export function getEstateSummary() {
+  const d = getDb();
+  const items = d.prepare("SELECT * FROM estate_items").all();
+  const rogers = items.filter(i => i.estate === "rogers");
+  const ingersoll = items.filter(i => i.estate === "ingersoll");
+  return {
+    totalItems: items.length,
+    rogersCount: rogers.length,
+    rogersOpen: rogers.filter(i => i.status === "open").length,
+    ingersollCount: ingersoll.length,
+    ingersollOpen: ingersoll.filter(i => i.status === "open").length,
+    openItems: items.filter(i => i.status === "open"),
+  };
+}
+
 // ── Meta ──
 
 export function getDataSources() {
@@ -114,6 +165,8 @@ export function getDbStats() {
     UNION ALL SELECT 'health_vitals', count(*) FROM health_vitals
     UNION ALL SELECT 'health_conditions', count(*) FROM health_conditions
     UNION ALL SELECT 'health_providers', count(*) FROM health_providers
+    UNION ALL SELECT 'finance_bills', count(*) FROM finance_bills
+    UNION ALL SELECT 'estate_items', count(*) FROM estate_items
     UNION ALL SELECT 'patterns', count(*) FROM patterns
     UNION ALL SELECT 'recommendations', count(*) FROM recommendations
   `).all();

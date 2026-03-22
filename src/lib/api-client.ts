@@ -67,6 +67,31 @@ export async function getDbStats(): Promise<DbStats | null> {
   return apiFetch<DbStats>("/api/stats");
 }
 
+export interface FinanceSummary {
+  billCount: number;
+  totalMonthly: number;
+  autoPayCount: number;
+  manualCount: number;
+  manualBills: Array<{ bill_name: string; amount: number; due_day: number }>;
+  fico: number | null;
+}
+
+export interface EstateSummary {
+  totalItems: number;
+  rogersCount: number;
+  rogersOpen: number;
+  ingersollCount: number;
+  ingersollOpen: number;
+}
+
+export async function getFinanceSummary(): Promise<FinanceSummary | null> {
+  return apiFetch<FinanceSummary>("/api/finance");
+}
+
+export async function getEstateSummary(): Promise<EstateSummary | null> {
+  return apiFetch<EstateSummary>("/api/estate");
+}
+
 export async function isServerRunning(): Promise<boolean> {
   try {
     const res = await fetch(`${API_BASE}/api/health-check`, {
