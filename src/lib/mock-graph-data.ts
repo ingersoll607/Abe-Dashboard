@@ -47,6 +47,7 @@ const nodes: BrainNode[] = [
   { id: "d-legal", label: "Personal & Legal", domain: "legal", type: "domain", status: "critical", urgency: 0.9, freshness: 0.5, summary: "Will & POA MISSING. Divorce pending. MVA settlement unresolved.", children: ["legal-will","legal-divorce","legal-mva","legal-nc-atty"] },
   { id: "legal-will", label: "Will & POA", domain: "legal", type: "entity", status: "critical", urgency: 1, freshness: 0, summary: "NONE ON FILE. Must create ASAP. Attorney offered discount on estate planning." },
   { id: "legal-divorce", label: "Divorce", domain: "legal", type: "entity", status: "attention", urgency: 0.7, freshness: 0.6, summary: "Attorney TBD. Research & consult scheduled 3/24." },
+  { id: "legal-sep-agreement", label: "Separation Agreement", domain: "legal", type: "entity", status: "attention", urgency: 0.6, freshness: 0.8, summary: "Signed Sept 2022, VA. Michele gets 45% TSP (~$301K). Health insurance obligation MET (expired June 2023 but she still has coverage). Informal FERS deal — verbal only." },
   { id: "legal-mva", label: "MVA Settlement", domain: "legal", type: "entity", status: "attention", urgency: 0.7, freshness: 0.5, summary: "$3K + $8K medical. Rawlings/BCBS subrogation. DO NOT SIGN YET." },
   { id: "legal-nc-atty", label: "Divorce Attorney", domain: "legal", type: "entity", status: "attention", urgency: 0.6, freshness: 0.5, summary: "VA jurisdiction (separation agreement signed in VA). Research scheduled 3/24." },
 
@@ -158,7 +159,9 @@ const edges: BrainEdge[] = [
   { source: "fin-cubesmart", target: "prop-storage", relationship: "pays_for", strength: 0.5 },
   { source: "legal-mva", target: "health-hematocrit", relationship: "medical_followup", strength: 0.5 },
   { source: "legal-mva", target: "prop-palisade", relationship: "vehicle_in", strength: 0.6 },
+  { source: "d-legal", target: "legal-sep-agreement", relationship: "contains", strength: 0.8 },
   { source: "legal-divorce", target: "legal-nc-atty", relationship: "requires", strength: 0.7 },
+  { source: "legal-sep-agreement", target: "legal-divorce", relationship: "governs", strength: 0.7 },
   { source: "legal-will", target: "er-opm", relationship: "estate_gap", strength: 0.5 },
   { source: "legal-will", target: "ei-life-ins", relationship: "estate_gap", strength: 0.5 },
   { source: "ei-taxes", target: "fin-fico", relationship: "impacts", strength: 0.4 },

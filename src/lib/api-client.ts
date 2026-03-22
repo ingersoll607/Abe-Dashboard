@@ -92,6 +92,28 @@ export async function getEstateSummary(): Promise<EstateSummary | null> {
   return apiFetch<EstateSummary>("/api/estate");
 }
 
+export interface NetWorth {
+  assets: number;
+  debts: number;
+  netWorth: number;
+}
+
+export interface TaxSummary {
+  year: number;
+  total: number;
+  have: number;
+  need: number;
+  pending: number;
+}
+
+export async function getNetWorth(): Promise<NetWorth | null> {
+  return apiFetch<NetWorth>("/api/net-worth");
+}
+
+export async function getTaxSummary(): Promise<TaxSummary | null> {
+  return apiFetch<TaxSummary>("/api/tax-status");
+}
+
 export async function isServerRunning(): Promise<boolean> {
   try {
     const res = await fetch(`${API_BASE}/api/health-check`, {

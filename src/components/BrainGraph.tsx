@@ -6,7 +6,7 @@ import type { BrainNode, BrainEdge, BrainGraph } from "@/lib/graph-types";
 import { DOMAIN_COLORS, STATUS_COLORS, NODE_SIZE } from "@/lib/graph-types";
 import { MOCK_GRAPH, ALERTS } from "@/lib/mock-graph-data";
 import { AlertTriangle, ChevronRight, Wifi, WifiOff } from "lucide-react";
-import { getHealthSummary, getFinanceSummary, getEstateSummary, type HealthSummary, type FinanceSummary, type EstateSummary } from "@/lib/api-client";
+import { getHealthSummary, getFinanceSummary, getEstateSummary, getNetWorth, getTaxSummary, type HealthSummary, type FinanceSummary, type EstateSummary, type NetWorth, type TaxSummary } from "@/lib/api-client";
 
 interface SimNode extends BrainNode, d3.SimulationNodeDatum {}
 interface SimEdge extends d3.SimulationLinkDatum<SimNode> {
@@ -47,6 +47,8 @@ export default function BrainGraph() {
   const [liveHealth, setLiveHealth] = useState<HealthSummary | null>(null);
   const [liveFinance, setLiveFinance] = useState<FinanceSummary | null>(null);
   const [liveEstate, setLiveEstate] = useState<EstateSummary | null>(null);
+  const [liveNetWorth, setLiveNetWorth] = useState<NetWorth | null>(null);
+  const [liveTax, setLiveTax] = useState<TaxSummary | null>(null);
   const [isLive, setIsLive] = useState(false);
 
   // Fetch live data from Express API
@@ -55,10 +57,14 @@ export default function BrainGraph() {
       getHealthSummary(),
       getFinanceSummary(),
       getEstateSummary(),
-    ]).then(([health, finance, estate]) => {
+      getNetWorth(),
+      getTaxSummary(),
+    ]).then(([health, finance, estate, nw, tax]) => {
       if (health) { setLiveHealth(health); setIsLive(true); }
       if (finance) setLiveFinance(finance);
       if (estate) setLiveEstate(estate);
+      if (nw) setLiveNetWorth(nw);
+      if (tax) setLiveTax(tax);
     });
   }, []);
 
@@ -104,13 +110,23 @@ export default function BrainGraph() {
     });
 
     // Finance domain enrichment
-    if (liveFinance) {
+    if (liveFinance || liveNetWorth) {
       const finIdx = updatedNodes.findIndex(n => n.id === "d-finance");
       if (finIdx >= 0) {
-        updatedNodes[finIdx] = {
-          ...updatedNodes[finIdx],
-          summary: `${liveFinance.billCount} bills, $${liveFinance.totalMonthly.toLocaleString()}/mo. ${liveFinance.manualCount} manual payments. ${liveFinance.fico ? 'FICO ' + liveFinance.fico : ''}`,
-        };
+        const parts = [];
+        if (liveNetWorth) parts.push(`Net worth $${Math.round(liveNetWorth.netWorth / 1000)}K`);
+        if (liveFinance) parts.push(`${liveFinance.billCount} bills $${liveFinance.totalMonthly.toLocaleString()}/mo`);
+        if (liveFinance?.manualCount) parts.push(`${liveFinance.manualCount} manual`);
+        if (liveTax) parts.push(`Tax: ${liveTax.have}/${liveTax.total} docs`);
+        if (liveFinance?.fico) parts.push(`FICO ${liveFinance.fico}`);
+        updatedNodes[finIdx] = { ...updatedNodes[finIdx], summary: parts.join(". ") + "." };
+      }
+      // Update FICO node
+      if (liveFinance?.fico) {
+        const ficoIdx = updatedNodes.findIndex(n => n.id === "fin-fico");
+        if (ficoIdx >= 0) {
+          updatedNodes[ficoIdx] = { ...updatedNodes[ficoIdx], summary: `FICO ${liveFinance.fico}. Zero late payments.` };
+        }
       }
     }
 
