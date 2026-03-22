@@ -32,7 +32,7 @@ const nodes: BrainNode[] = [
   { id: "er-opm", label: "OPM/FERS Benefit", domain: "estate", type: "entity", status: "critical", urgency: 1, freshness: 0.3, summary: "7+ months pending. No response. Congressional inquiry needed." },
   { id: "er-herman", label: "Estate Attorney", domain: "estate", type: "entity", status: "critical", urgency: 0.8, freshness: 0.3, summary: "No follow-up since Feb 6. Hospital negligence." },
   { id: "er-years-support", label: "Year's Support", domain: "estate", type: "entity", status: "attention", urgency: 0.7, freshness: 0.6, summary: "Petition status unknown. Fact reference sent to Gail." },
-  { id: "er-whitty", label: "Jay Whitley / Hostel Law", domain: "estate", type: "entity", status: "attention", urgency: 0.7, freshness: 0.5, summary: "Stepdad's hospital negligence case (fell and broke neck). Callback needed." },
+  { id: "er-whitty", label: "Jake Whitley / Hostel Law", domain: "estate", type: "entity", status: "attention", urgency: 0.7, freshness: 0.5, summary: "Stepdad's hospital negligence case (fell and broke neck). Callback needed." },
   { id: "er-mom-accounts", label: "Cancel Art's Accounts", domain: "estate", type: "entity", status: "attention", urgency: 0.5, freshness: 0.4, summary: "Mom's to-do." },
   { id: "er-mom-loan", label: "Home Loan Transfer", domain: "estate", type: "entity", status: "attention", urgency: 0.5, freshness: 0.4, summary: "Get out of Art's name." },
 
