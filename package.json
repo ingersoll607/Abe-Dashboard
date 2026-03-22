@@ -15,6 +15,7 @@
     "better-sqlite3": "^12.8.0",
     "cors": "^2.8.6",
     "d3": "^7.9.0",
+    "edge-tts-node": "^1.5.7",
     "express": "^5.2.1",
     "lucide-react": "^0.577.0",
     "next": "16.2.0",

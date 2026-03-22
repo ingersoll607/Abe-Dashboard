@@ -73,14 +73,36 @@ const INTERVIEWS = {
 
 type InterviewType = keyof typeof INTERVIEWS;
 
-function speak(text: string): Promise<void> {
+async function speak(text: string): Promise<void> {
+  // Try Edge TTS (neural, natural) via Express server first
+  try {
+    const res = await fetch("http://localhost:3847/api/tts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer abe-open-brain-2026" },
+      body: JSON.stringify({ text }),
+      signal: AbortSignal.timeout(5000),
+    });
+    if (res.ok) {
+      const blob = await res.blob();
+      const url = URL.createObjectURL(new Blob([blob], { type: "audio/wav" }));
+      const audio = new Audio(url);
+      return new Promise((resolve) => {
+        audio.onended = () => { URL.revokeObjectURL(url); resolve(); };
+        audio.onerror = () => { URL.revokeObjectURL(url); resolve(); };
+        audio.play().catch(() => resolve());
+      });
+    }
+  } catch {
+    // Server not available — fall through to browser TTS
+  }
+
+  // Fallback: browser SpeechSynthesis
   return new Promise((resolve) => {
     if (!window.speechSynthesis) { resolve(); return; }
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = 0.95;
     utterance.pitch = 1.0;
     utterance.volume = 0.9;
-    // Try to pick a natural voice
     const voices = window.speechSynthesis.getVoices();
     const preferred = voices.find(v => v.name.includes("Samantha") || v.name.includes("Alex") || v.name.includes("Daniel"));
     if (preferred) utterance.voice = preferred;

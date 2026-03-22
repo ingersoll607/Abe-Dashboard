@@ -588,6 +588,27 @@ app.post("/api/ingest-confirm", async (req, res) => {
   }
 });
 
+// ── TTS: Text-to-speech via macOS 'say' command ──
+app.post("/api/tts", async (req, res) => {
+  const { text, voice } = req.body;
+  if (!text) return res.status(400).json({ error: "Missing text" });
+
+  const tmpFile = `/tmp/tts-${Date.now()}.aiff`;
+  const selectedVoice = voice || "Reed";
+  try {
+    // Use macOS say command — high quality voices, zero dependencies
+    execSync(`say -v "${selectedVoice}" -o "${tmpFile}" "${text.replace(/"/g, '\\"')}"`, { timeout: 10000 });
+    const audio = fs.readFileSync(tmpFile);
+    fs.unlinkSync(tmpFile);
+    res.set("Content-Type", "audio/aiff");
+    res.send(audio);
+  } catch (e) {
+    try { fs.unlinkSync(tmpFile); } catch {}
+    console.error("TTS error:", e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── CORRECT: Write corrections back to data store ──
 app.post("/api/correct", (req, res) => {
   const { target, field, value, source } = req.body;
