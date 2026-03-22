@@ -150,6 +150,77 @@ export function getEstateSummary() {
   };
 }
 
+// ── Retirement/Accounts ──
+
+export function getRetirementAccounts() {
+  const d = getDb();
+  try { return d.prepare("SELECT * FROM retirement_accounts ORDER BY balance DESC").all(); }
+  catch { return []; }
+}
+
+export function getFinanceAccounts({ type } = {}) {
+  const d = getDb();
+  if (type) return d.prepare("SELECT * FROM finance_accounts WHERE account_type = ? ORDER BY institution").all(type);
+  return d.prepare("SELECT * FROM finance_accounts ORDER BY account_type, institution").all();
+}
+
+export function getIncomeSources() {
+  const d = getDb();
+  try { return d.prepare("SELECT * FROM income_sources ORDER BY source_name").all(); }
+  catch { return []; }
+}
+
+export function getTaxDocuments({ year, status } = {}) {
+  const d = getDb();
+  let sql = "SELECT * FROM tax_documents WHERE 1=1";
+  const params = [];
+  if (year) { sql += " AND tax_year = ?"; params.push(year); }
+  if (status) { sql += " AND status = ?"; params.push(status); }
+  sql += " ORDER BY status, doc_type";
+  try { return d.prepare(sql).all(...params); }
+  catch { return []; }
+}
+
+export function getTaxSummary(year = 2025) {
+  const d = getDb();
+  try {
+    const docs = d.prepare("SELECT * FROM tax_documents WHERE tax_year = ?").all(year);
+    return {
+      year,
+      total: docs.length,
+      have: docs.filter(d => d.status === "have").length,
+      need: docs.filter(d => d.status === "need").length,
+      pending: docs.filter(d => d.status === "pending" || d.status === "verify").length,
+      docs,
+    };
+  } catch { return { year, total: 0, have: 0, need: 0, pending: 0, docs: [] }; }
+}
+
+export function getLegalDocuments() {
+  const d = getDb();
+  try { return d.prepare("SELECT * FROM legal_documents").all(); }
+  catch { return []; }
+}
+
+export function getRelationships() {
+  const d = getDb();
+  return d.prepare("SELECT * FROM identity_relationships ORDER BY person_name").all();
+}
+
+export function getNetWorth() {
+  const d = getDb();
+  try {
+    const assets = d.prepare("SELECT SUM(balance) as total FROM finance_accounts WHERE balance > 0 AND account_type IN ('retirement','investment','checking','savings')").get();
+    const retAssets = d.prepare("SELECT SUM(balance) as total FROM retirement_accounts WHERE balance > 0").get();
+    const debts = d.prepare("SELECT SUM(balance) as total FROM finance_accounts WHERE balance > 0 AND account_type IN ('mortgage','auto_loan')").get();
+    return {
+      assets: (assets?.total || 0) + (retAssets?.total || 0),
+      debts: debts?.total || 0,
+      netWorth: ((assets?.total || 0) + (retAssets?.total || 0)) - (debts?.total || 0),
+    };
+  } catch { return { assets: 0, debts: 0, netWorth: 0 }; }
+}
+
 // ── Meta ──
 
 export function getDataSources() {

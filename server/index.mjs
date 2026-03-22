@@ -310,6 +310,56 @@ app.get("/api/estate/items", (req, res) => {
   }
 });
 
+// ── RETIREMENT: Accounts ──
+app.get("/api/retirement", (_req, res) => {
+  try {
+    const accounts = queries.getRetirementAccounts();
+    res.json({ accounts, count: accounts.length, timestamp: new Date().toISOString() });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── INCOME: Sources ──
+app.get("/api/income", (_req, res) => {
+  try {
+    const sources = queries.getIncomeSources();
+    res.json({ sources, count: sources.length, timestamp: new Date().toISOString() });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── TAX: Document status ──
+app.get("/api/tax-status", (req, res) => {
+  try {
+    const year = req.query.year ? parseInt(req.query.year) : 2025;
+    const summary = queries.getTaxSummary(year);
+    res.json({ ...summary, timestamp: new Date().toISOString() });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── LEGAL: Documents + relationships ──
+app.get("/api/legal", (_req, res) => {
+  try {
+    const docs = queries.getLegalDocuments();
+    const relationships = queries.getRelationships();
+    res.json({ documents: docs, relationships, timestamp: new Date().toISOString() });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── NET WORTH: Calculated ──
+app.get("/api/net-worth", (_req, res) => {
+  try {
+    const nw = queries.getNetWorth();
+    res.json({ ...nw, timestamp: new Date().toISOString() });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── RELATIONSHIPS: Family map ──
+app.get("/api/relationships", (_req, res) => {
+  try {
+    const people = queries.getRelationships();
+    res.json({ people, count: people.length, timestamp: new Date().toISOString() });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ── PROPERTY: Vehicles, home, maintenance ──
 app.get("/api/property", (_req, res) => {
   const profile = readFile(path.join(MEMORY_DIR, "mike_profile.md")) || "";
