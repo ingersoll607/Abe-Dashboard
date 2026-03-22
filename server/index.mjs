@@ -759,6 +759,15 @@ app.get("/api/completeness", (_req, res) => {
   }
 });
 
+// ── ACTIVITY LOG / TIMELINE ──
+app.get("/api/timeline", (req, res) => {
+  try {
+    const { domain, limit } = req.query;
+    const events = queries.getActivityLog({ domain, limit: limit ? parseInt(limit) : 50 });
+    res.json({ events, count: events.length, timestamp: new Date().toISOString() });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ── CORRECT: Write corrections back to data store ──
 app.post("/api/correct", (req, res) => {
   const { target, field, value, source } = req.body;

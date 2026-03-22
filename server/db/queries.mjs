@@ -233,6 +233,27 @@ export function getNetWorth() {
   } catch { return { assets: 0, debts: 0, netWorth: 0, netWorthGross: 0, netWorthPostSeparation: 0, separationObligation: 0 }; }
 }
 
+// ── Activity Log ──
+
+export function getActivityLog({ limit = 50, domain } = {}) {
+  const d = getDb();
+  try {
+    if (domain) return d.prepare("SELECT * FROM activity_log WHERE domain = ? ORDER BY timestamp DESC LIMIT ?").all(domain, limit);
+    return d.prepare("SELECT * FROM activity_log ORDER BY timestamp DESC LIMIT ?").all(limit);
+  } catch { return []; }
+}
+
+export function logActivity(domain, action, detail, source = "system") {
+  const d = getDb();
+  try {
+    // Need write access - reopen without readonly
+    const Database = d.constructor;
+    const writeDb = new Database(d.name);
+    writeDb.prepare("INSERT INTO activity_log (timestamp, domain, action, detail, source) VALUES (datetime('now'), ?, ?, ?, ?)").run(domain, action, detail, source);
+    writeDb.close();
+  } catch { /* read-only fallback - skip logging */ }
+}
+
 // ── Meta ──
 
 export function getDataSources() {
