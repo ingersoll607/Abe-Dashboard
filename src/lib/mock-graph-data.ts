@@ -16,8 +16,8 @@ const nodes: BrainNode[] = [
   { id: "health-provider", label: "Primary Care NP", domain: "health", type: "entity", status: "neutral", urgency: 0.2, freshness: 0.5, summary: "Primary care provider on file." },
 
   // Domain: Finance
-  { id: "d-finance", label: "Finance", domain: "finance", type: "domain", status: "good", urgency: 0.4, freshness: 0.9, summary: "FICO 836. 36 bills. $4,200/mo. 4% utilization. 2 manual payments.", children: ["fin-fico","fin-usaa-checking","fin-usaa-savings","fin-chase","fin-ozk-loan","fin-hyundai","fin-chase-cc","fin-verizon","fin-cubesmart"] },
-  { id: "fin-fico", label: "FICO 836", domain: "finance", type: "entity", status: "good", urgency: 0.1, freshness: 0.9, summary: "Exceptional. Zero late payments. 4% utilization." },
+  { id: "d-finance", label: "Finance", domain: "finance", type: "domain", status: "good", urgency: 0.4, freshness: 0.9, summary: "FICO 799. 36 bills. $4,200/mo. 4% utilization. 2 manual payments.", children: ["fin-fico","fin-usaa-checking","fin-usaa-savings","fin-chase","fin-ozk-loan","fin-hyundai","fin-chase-cc","fin-verizon","fin-cubesmart"] },
+  { id: "fin-fico", label: "FICO 799", domain: "finance", type: "entity", status: "good", urgency: 0.1, freshness: 0.9, summary: "Exceptional. Zero late payments. 4% utilization." },
   { id: "fin-usaa-checking", label: "USAA Checking", domain: "finance", type: "entity", status: "good", urgency: 0.2, freshness: 0.8, summary: "Primary banking, auto-pay source." },
   { id: "fin-usaa-savings", label: "USAA Savings", domain: "finance", type: "entity", status: "good", urgency: 0.1, freshness: 0.7, summary: "Emergency fund." },
   { id: "fin-chase", label: "Chase Checking", domain: "finance", type: "entity", status: "good", urgency: 0.2, freshness: 0.8, summary: "Debit 4069. CubeSmart auto-pay." },
