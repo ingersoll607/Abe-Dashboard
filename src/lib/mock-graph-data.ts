@@ -16,7 +16,7 @@ const nodes: BrainNode[] = [
   { id: "health-provider", label: "Dr. Bradley Jones", domain: "health", type: "entity", status: "neutral", urgency: 0.2, freshness: 0.9, summary: "PCP. Greenville Family Practice. 252-713-3133." },
 
   // Domain: Finance
-  { id: "d-finance", label: "Finance", domain: "finance", type: "domain", status: "good", urgency: 0.4, freshness: 0.9, summary: "FICO 799. 36 bills $4,509/mo. 0% utilization (Oct 2025). Net worth ~$307K post-separation.", children: ["fin-fico","fin-usaa-checking","fin-usaa-savings","fin-chase","fin-ozk-loan","fin-hyundai","fin-chase-cc","fin-verizon","fin-cubesmart"] },
+  { id: "d-finance", label: "Finance", domain: "finance", type: "domain", status: "good", urgency: 0.4, freshness: 0.9, summary: "FICO 799. 36 bills $4,581/mo. 0% utilization (Oct 2025). Net worth ~$307K post-separation.", children: ["fin-fico","fin-usaa-checking","fin-usaa-savings","fin-chase","fin-ozk-loan","fin-hyundai","fin-chase-cc","fin-verizon","fin-cubesmart"] },
   { id: "fin-fico", label: "FICO 799", domain: "finance", type: "entity", status: "good", urgency: 0.1, freshness: 0.9, summary: "Exceptional. Zero late payments. 0% utilization (Oct 2025)." },
   { id: "fin-usaa-checking", label: "USAA Checking", domain: "finance", type: "entity", status: "good", urgency: 0.2, freshness: 0.8, summary: "Primary banking, auto-pay source." },
   { id: "fin-usaa-savings", label: "USAA Savings", domain: "finance", type: "entity", status: "good", urgency: 0.1, freshness: 0.7, summary: "Emergency fund." },

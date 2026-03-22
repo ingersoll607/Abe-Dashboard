@@ -542,6 +542,27 @@ app.post("/api/ingest-text", (req, res) => {
     );
   }
 
+  // Additional parsers: dates, names, dollar amounts, yes/no
+  const dateMatch = fullText.match(/(?:last\s+)?(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|(?:january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{1,2}(?:st|nd|rd|th)?(?:\s*,?\s*\d{4})?)/i);
+  if (dateMatch && !parsed.find(p => p.test_name === "Date Mentioned")) {
+    parsed.push({ test_name: "Date Mentioned", result_value: dateMatch[0], unit: "", reference_range: "", status: "normal", panel_group: "General", flagged: false, validation: "valid" });
+  }
+
+  const dollarMatch = fullText.match(/\$?\s*(\d+(?:,\d{3})*(?:\.\d{2})?)\s*(?:dollars?|bucks?)?/i);
+  if (dollarMatch && !parsed.find(p => p.unit === "$")) {
+    parsed.push({ test_name: "Amount", result_value: dollarMatch[1].replace(/,/g, ""), unit: "$", reference_range: "", status: "normal", panel_group: "Financial", flagged: false, validation: "valid" });
+  }
+
+  const providerMatch = fullText.match(/(?:dr\.?\s+|doctor\s+|saw\s+)([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/);
+  if (providerMatch) {
+    parsed.push({ test_name: "Provider", result_value: providerMatch[1], unit: "", reference_range: "", status: "normal", panel_group: "General", flagged: false, validation: "valid" });
+  }
+
+  // Always include raw transcript as a note if nothing else was parsed
+  if (parsed.length === 0) {
+    parsed.push({ test_name: "Note", result_value: text, unit: "", reference_range: "", status: "normal", panel_group: "General", flagged: false, validation: "raw_transcript" });
+  }
+
   res.json({
     parsed,
     count: parsed.length,
@@ -608,6 +629,132 @@ app.post("/api/tts", async (req, res) => {
   } catch (e) {
     try { fs.unlinkSync(tmpFile); } catch {}
     console.error("TTS error:", e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── BRAIN DATA: Full twin state from SQLite ──
+app.get("/api/brain-data", (_req, res) => {
+  try {
+    const health = queries.getHealthSummary();
+    const finance = queries.getFinanceSummary();
+    const estate = queries.getEstateSummary();
+    const nw = queries.getNetWorth();
+    const tax = queries.getTaxSummary();
+    const recs = queries.getRecommendations();
+    const patterns = queries.getPatterns();
+    const relationships = queries.getRelationships();
+    const providers = queries.getProviders();
+    const conditions = queries.getConditions();
+    const stats = queries.getDbStats();
+    const sources = queries.getDataSources();
+    const legal = queries.getLegalDocuments();
+
+    res.json({
+      health: { ...health, conditions, providers },
+      finance: { ...finance, netWorth: nw, taxStatus: tax },
+      estate,
+      legal: { documents: legal },
+      relationships,
+      recommendations: recs,
+      patterns,
+      infrastructure: { dbStats: stats, dataSources: sources },
+      metadata: {
+        generatedAt: new Date().toISOString(),
+        totalRecords: stats.totalRecords,
+        schemaVersion: stats.schemaVersion,
+        tableCount: Object.keys(stats.tables).length,
+      },
+      timestamp: new Date().toISOString(),
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── SEARCH: Full-text across all tables ──
+app.get("/api/search", (req, res) => {
+  const q = req.query.q;
+  if (!q) return res.json({ error: "Missing ?q= parameter", results: [] });
+
+  try {
+    const term = `%${q}%`;
+    const results = [];
+
+    // Search health
+    const labs = queries.getLabResults({ limit: 100 });
+    labs.filter(l => (l.test_name + " " + l.result_value + " " + l.panel_group).toLowerCase().includes(q.toLowerCase()))
+      .slice(0, 5).forEach(l => results.push({ domain: "health", type: "lab", label: l.test_name, detail: `${l.result_value} ${l.unit || ""} [${l.status}]`, date: l.test_date }));
+
+    const meds = queries.getMedications();
+    meds.filter(m => m.medication_name.toLowerCase().includes(q.toLowerCase()))
+      .slice(0, 5).forEach(m => results.push({ domain: "health", type: "medication", label: m.medication_name, detail: `${m.dosage || ""} ${m.frequency || ""} ${m.active ? "Active" : "Inactive"}` }));
+
+    const conds = queries.getConditions();
+    conds.filter(c => (c.condition_name + " " + (c.treatment || "")).toLowerCase().includes(q.toLowerCase()))
+      .slice(0, 5).forEach(c => results.push({ domain: "health", type: "condition", label: c.condition_name, detail: `${c.status} — ${c.treatment || ""}` }));
+
+    // Search finance
+    const bills = queries.getBills();
+    bills.filter(b => (b.bill_name + " " + (b.category || "")).toLowerCase().includes(q.toLowerCase()))
+      .slice(0, 5).forEach(b => results.push({ domain: "finance", type: "bill", label: b.bill_name, detail: `$${b.amount || "?"} day ${b.due_day}` }));
+
+    const accounts = queries.getFinanceAccounts();
+    accounts.filter(a => (a.institution + " " + a.account_name + " " + (a.notes || "")).toLowerCase().includes(q.toLowerCase()))
+      .slice(0, 5).forEach(a => results.push({ domain: "finance", type: "account", label: `${a.institution} ${a.account_name}`, detail: a.balance ? `$${a.balance.toLocaleString()}` : a.notes || "" }));
+
+    // Search relationships
+    const rels = queries.getRelationships();
+    rels.filter(r => (r.person_name + " " + r.relationship + " " + (r.notes || "")).toLowerCase().includes(q.toLowerCase()))
+      .slice(0, 5).forEach(r => results.push({ domain: "personal", type: "relationship", label: r.person_name, detail: `${r.relationship} [${r.status}]` }));
+
+    // Search estate
+    const items = queries.getEstateItems();
+    items.filter(i => (i.item_title + " " + (i.notes || "")).toLowerCase().includes(q.toLowerCase()))
+      .slice(0, 5).forEach(i => results.push({ domain: "estate", type: "item", label: i.item_title, detail: `${i.estate} — ${i.status}` }));
+
+    // Search recommendations
+    const recs = queries.getRecommendations({ status: "pending" });
+    recs.filter(r => r.recommendation_text.toLowerCase().includes(q.toLowerCase()))
+      .forEach(r => results.push({ domain: r.domain, type: "recommendation", label: r.recommendation_text, detail: r.urgency }));
+
+    res.json({ query: q, results, count: results.length, timestamp: new Date().toISOString() });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── COMPLETENESS: Data completeness score ──
+app.get("/api/completeness", (_req, res) => {
+  try {
+    const stats = queries.getDbStats();
+    const checks = {
+      health_labs: { has: stats.tables.health_labs > 0, weight: 10 },
+      health_medications: { has: stats.tables.health_medications > 0, weight: 8 },
+      health_conditions: { has: stats.tables.health_conditions > 0, weight: 8 },
+      health_providers: { has: stats.tables.health_providers > 0, weight: 5 },
+      health_vitals: { has: stats.tables.health_vitals > 0, weight: 5 },
+      finance_bills: { has: stats.tables.finance_bills > 0, weight: 10 },
+      finance_accounts: { has: (stats.tables.finance_accounts || 0) > 0, weight: 10 },
+      income_sources: { has: (stats.tables.income_sources || 0) > 0, weight: 8 },
+      tax_documents: { has: (stats.tables.tax_documents || 0) > 0, weight: 5 },
+      estate_items: { has: stats.tables.estate_items > 0, weight: 8 },
+      identity_relationships: { has: (stats.tables.identity_relationships || 0) > 0, weight: 8 },
+      patterns: { has: stats.tables.patterns > 0, weight: 5 },
+      recommendations: { has: stats.tables.recommendations > 0, weight: 5 },
+      federal_salary: { has: false, weight: 5, missing: "Federal salary amount (need W-2)" },
+      vanguard_balance: { has: false, weight: 3, missing: "Vanguard 401K balance" },
+      dental_provider: { has: false, weight: 2, missing: "Dental provider" },
+      allergies: { has: false, weight: 2, missing: "Allergies" },
+    };
+
+    const totalWeight = Object.values(checks).reduce((s, c) => s + c.weight, 0);
+    const completedWeight = Object.values(checks).filter(c => c.has).reduce((s, c) => s + c.weight, 0);
+    const score = Math.round((completedWeight / totalWeight) * 100);
+    const missing = Object.entries(checks).filter(([, c]) => !c.has).map(([key, c]) => c.missing || key);
+
+    res.json({ score, totalWeight, completedWeight, missing, timestamp: new Date().toISOString() });
+  } catch (e) {
     res.status(500).json({ error: e.message });
   }
 });
