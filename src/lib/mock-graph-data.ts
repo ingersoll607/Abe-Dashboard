@@ -32,7 +32,7 @@ const nodes: BrainNode[] = [
   { id: "er-opm", label: "OPM/FERS Benefit", domain: "estate", type: "entity", status: "critical", urgency: 1, freshness: 0.3, summary: "7+ months pending. No response. Congressional inquiry needed." },
   { id: "er-herman", label: "Estate Attorney", domain: "estate", type: "entity", status: "critical", urgency: 0.8, freshness: 0.3, summary: "No follow-up since Feb 6. Hospital negligence." },
   { id: "er-years-support", label: "Year's Support", domain: "estate", type: "entity", status: "attention", urgency: 0.7, freshness: 0.6, summary: "Petition status unknown. Fact reference sent to Gail." },
-  { id: "er-whitty", label: "Negligence Attorney", domain: "estate", type: "entity", status: "attention", urgency: 0.7, freshness: 0.5, summary: "Hospital negligence. Callback needed." },
+  { id: "er-whitty", label: "Jay Whitley / Hostel Law", domain: "estate", type: "entity", status: "attention", urgency: 0.7, freshness: 0.5, summary: "Stepdad's hospital negligence case (fell and broke neck). Callback needed." },
   { id: "er-mom-accounts", label: "Cancel Art's Accounts", domain: "estate", type: "entity", status: "attention", urgency: 0.5, freshness: 0.4, summary: "Mom's to-do." },
   { id: "er-mom-loan", label: "Home Loan Transfer", domain: "estate", type: "entity", status: "attention", urgency: 0.5, freshness: 0.4, summary: "Get out of Art's name." },
 
@@ -46,7 +46,7 @@ const nodes: BrainNode[] = [
   // Domain: Legal / Personal
   { id: "d-legal", label: "Personal & Legal", domain: "legal", type: "domain", status: "critical", urgency: 0.9, freshness: 0.5, summary: "Will & POA MISSING. Divorce pending. MVA settlement unresolved.", children: ["legal-will","legal-divorce","legal-mva","legal-nc-atty"] },
   { id: "legal-will", label: "Will & POA", domain: "legal", type: "entity", status: "critical", urgency: 1, freshness: 0, summary: "NONE ON FILE. Must create ASAP. Attorney offered discount on estate planning." },
-  { id: "legal-divorce", label: "Divorce", domain: "legal", type: "entity", status: "attention", urgency: 0.7, freshness: 0.6, summary: "Hostel Law (Jay Whitley). Spoke 3/18. Discovery pending." },
+  { id: "legal-divorce", label: "Divorce", domain: "legal", type: "entity", status: "attention", urgency: 0.7, freshness: 0.6, summary: "Attorney TBD. Research & consult scheduled 3/24." },
   { id: "legal-mva", label: "MVA Settlement", domain: "legal", type: "entity", status: "attention", urgency: 0.7, freshness: 0.5, summary: "$3K + $8K medical. Rawlings/BCBS subrogation. DO NOT SIGN YET." },
   { id: "legal-nc-atty", label: "NC Divorce Attorney", domain: "legal", type: "entity", status: "attention", urgency: 0.6, freshness: 0.5, summary: "Research scheduled 3/24." },
 
