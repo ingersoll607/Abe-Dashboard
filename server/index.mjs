@@ -593,14 +593,17 @@ app.post("/api/tts", async (req, res) => {
   const { text, voice } = req.body;
   if (!text) return res.status(400).json({ error: "Missing text" });
 
-  const tmpFile = `/tmp/tts-${Date.now()}.aiff`;
+  const tmpAiff = `/tmp/tts-${Date.now()}.aiff`;
+  const tmpWav = tmpAiff.replace(".aiff", ".wav");
   const selectedVoice = voice || "Reed";
   try {
-    // Use macOS say command — high quality voices, zero dependencies
-    execSync(`say -v "${selectedVoice}" -o "${tmpFile}" "${text.replace(/"/g, '\\"')}"`, { timeout: 10000 });
-    const audio = fs.readFileSync(tmpFile);
-    fs.unlinkSync(tmpFile);
-    res.set("Content-Type", "audio/aiff");
+    // macOS say → AIFF → WAV (browser-compatible)
+    execSync(`say -v "${selectedVoice}" -o "${tmpAiff}" "${text.replace(/"/g, '\\"')}"`, { timeout: 10000 });
+    execSync(`afconvert -f WAVE -d LEI16 "${tmpAiff}" "${tmpWav}"`, { timeout: 5000 });
+    const audio = fs.readFileSync(tmpWav);
+    try { fs.unlinkSync(tmpAiff); } catch {}
+    try { fs.unlinkSync(tmpWav); } catch {}
+    res.set("Content-Type", "audio/wav");
     res.send(audio);
   } catch (e) {
     try { fs.unlinkSync(tmpFile); } catch {}

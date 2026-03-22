@@ -83,8 +83,8 @@ async function speak(text: string): Promise<void> {
       signal: AbortSignal.timeout(5000),
     });
     if (res.ok) {
-      const blob = await res.blob();
-      const url = URL.createObjectURL(new Blob([blob], { type: "audio/wav" }));
+      const arrayBuffer = await res.arrayBuffer();
+      const url = URL.createObjectURL(new Blob([arrayBuffer], { type: "audio/wav" }));
       const audio = new Audio(url);
       return new Promise((resolve) => {
         audio.onended = () => { URL.revokeObjectURL(url); resolve(); };
@@ -261,10 +261,13 @@ export default function InterviewMode() {
         return; // Don't advance to next question yet
       }
     } catch {
-      // Server not running — still continue the interview
+      // Server not running — acknowledge and move on
     }
 
-    // No values found — move to next question
+    // No values extracted — acknowledge and advance
+    const noDataAck = "Got it, thanks. Moving on.";
+    setMessages(prev => [...prev, { role: "abe", text: noDataAck }]);
+    await speak(noDataAck);
     await advanceToNextQuestion();
     setTranscript("");
   }, [transcript, interview, questionIndex, pendingValues]);
