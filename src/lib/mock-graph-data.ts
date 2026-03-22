@@ -6,18 +6,18 @@ const nodes: BrainNode[] = [
 
   // Domain: Health
   { id: "d-health", label: "Health", domain: "health", type: "domain", status: "attention", urgency: 0.7, freshness: 0.7, summary: "Hematocrit elevated. Free T critically low. A1C prediabetic. 8 providers on file.", children: ["health-hematocrit","health-testosterone","health-a1c","health-bp","health-cpap","health-hypothyroid","health-gout","health-provider"] },
-  { id: "health-hematocrit", label: "Hematocrit 50.2%", domain: "health", type: "entity", status: "critical", urgency: 0.9, freshness: 0.5, summary: "Flag HIGH. Range 38.5-50.0. Phlebotomy may be needed." },
+  { id: "health-hematocrit", label: "Hematocrit 54.1%", domain: "health", type: "entity", status: "critical", urgency: 0.9, freshness: 0.8, summary: "Flag HIGH. 54.1% (Sept 2025). Range 37.5-51.0. TRENDING UP from 50.2%. Phlebotomy may be needed." },
   { id: "health-testosterone", label: "Free T: 5.1", domain: "health", type: "entity", status: "critical", urgency: 0.9, freshness: 0.5, summary: "Critically low despite TRT. Levothyroxine over-replacement suspected." },
   { id: "health-a1c", label: "A1C 5.7%", domain: "health", type: "entity", status: "attention", urgency: 0.6, freshness: 0.5, summary: "Prediabetic threshold. Trending up." },
   { id: "health-bp", label: "BP 139/86", domain: "health", type: "entity", status: "attention", urgency: 0.6, freshness: 0.4, summary: "Stage 1 Hypertension. Feb 2025." },
   { id: "health-cpap", label: "CPAP Compliance", domain: "health", type: "entity", status: "attention", urgency: 0.5, freshness: 0.6, summary: "4-6 hrs/night. Needs improvement." },
   { id: "health-hypothyroid", label: "Hypothyroidism", domain: "health", type: "entity", status: "good", urgency: 0.3, freshness: 0.6, summary: "Managed. Levothyroxine 200mcg daily." },
   { id: "health-gout", label: "Gout", domain: "health", type: "entity", status: "good", urgency: 0.2, freshness: 0.6, summary: "Managed. Allopurinol 300mg daily." },
-  { id: "health-provider", label: "Primary Care NP", domain: "health", type: "entity", status: "neutral", urgency: 0.2, freshness: 0.5, summary: "Primary care provider on file." },
+  { id: "health-provider", label: "Dr. Bradley Jones", domain: "health", type: "entity", status: "neutral", urgency: 0.2, freshness: 0.9, summary: "PCP. Greenville Family Practice. 252-713-3133." },
 
   // Domain: Finance
-  { id: "d-finance", label: "Finance", domain: "finance", type: "domain", status: "good", urgency: 0.4, freshness: 0.9, summary: "FICO 799. 36 bills. $4,200/mo. 4% utilization. 2 manual payments.", children: ["fin-fico","fin-usaa-checking","fin-usaa-savings","fin-chase","fin-ozk-loan","fin-hyundai","fin-chase-cc","fin-verizon","fin-cubesmart"] },
-  { id: "fin-fico", label: "FICO 799", domain: "finance", type: "entity", status: "good", urgency: 0.1, freshness: 0.9, summary: "Exceptional. Zero late payments. 4% utilization." },
+  { id: "d-finance", label: "Finance", domain: "finance", type: "domain", status: "good", urgency: 0.4, freshness: 0.9, summary: "FICO 799. 36 bills $4,509/mo. 0% utilization (Oct 2025). Net worth ~$307K post-separation.", children: ["fin-fico","fin-usaa-checking","fin-usaa-savings","fin-chase","fin-ozk-loan","fin-hyundai","fin-chase-cc","fin-verizon","fin-cubesmart"] },
+  { id: "fin-fico", label: "FICO 799", domain: "finance", type: "entity", status: "good", urgency: 0.1, freshness: 0.9, summary: "Exceptional. Zero late payments. 0% utilization (Oct 2025)." },
   { id: "fin-usaa-checking", label: "USAA Checking", domain: "finance", type: "entity", status: "good", urgency: 0.2, freshness: 0.8, summary: "Primary banking, auto-pay source." },
   { id: "fin-usaa-savings", label: "USAA Savings", domain: "finance", type: "entity", status: "good", urgency: 0.1, freshness: 0.7, summary: "Emergency fund." },
   { id: "fin-chase", label: "Chase Checking", domain: "finance", type: "entity", status: "good", urgency: 0.2, freshness: 0.8, summary: "Debit 4069. CubeSmart auto-pay." },
@@ -176,7 +176,7 @@ export const ALERTS = [
   { text: "Will & POA — NONE ON FILE", domain: "Legal", priority: "critical" as const, nodeId: "legal-will" },
   { text: "Ernest final taxes due Mar 28", domain: "Estate", priority: "critical" as const, nodeId: "ei-taxes" },
   { text: "Free Testosterone critically low", domain: "Health", priority: "critical" as const, nodeId: "health-testosterone" },
-  { text: "Hematocrit elevated (50.2%)", domain: "Health", priority: "critical" as const, nodeId: "health-hematocrit" },
+  { text: "Hematocrit 54.1% — TRENDING UP", domain: "Health", priority: "critical" as const, nodeId: "health-hematocrit" },
   { text: "OPM/FERS — 7+ months pending", domain: "Estate", priority: "high" as const, nodeId: "er-opm" },
   { text: "Estate attorney — no follow-up", domain: "Estate", priority: "high" as const, nodeId: "er-herman" },
   { text: "Divorce — no attorney retained, research 3/24", domain: "Legal", priority: "high" as const, nodeId: "legal-divorce" },

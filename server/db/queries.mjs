@@ -210,15 +210,27 @@ export function getRelationships() {
 export function getNetWorth() {
   const d = getDb();
   try {
+    // Use finance_accounts ONLY to avoid double-counting with retirement_accounts
     const assets = d.prepare("SELECT SUM(balance) as total FROM finance_accounts WHERE balance > 0 AND account_type IN ('retirement','investment','checking','savings')").get();
-    const retAssets = d.prepare("SELECT SUM(balance) as total FROM retirement_accounts WHERE balance > 0").get();
     const debts = d.prepare("SELECT SUM(balance) as total FROM finance_accounts WHERE balance > 0 AND account_type IN ('mortgage','auto_loan')").get();
+    // Vehicle estimates (not in DB yet)
+    const vehicleEstimate = 80000; // Palisade ~$35K, RV ~$30K, Harley ~$15K
+    // TSP separation obligation (45% to Michele)
+    const tspBalance = d.prepare("SELECT balance FROM finance_accounts WHERE account_name LIKE '%TSP%' OR account_name LIKE '%Thrift%'").get();
+    const separationObligation = (tspBalance?.balance || 0) * 0.45;
+
+    const totalAssets = (assets?.total || 0) + vehicleEstimate;
+    const totalDebts = debts?.total || 0;
     return {
-      assets: (assets?.total || 0) + (retAssets?.total || 0),
-      debts: debts?.total || 0,
-      netWorth: ((assets?.total || 0) + (retAssets?.total || 0)) - (debts?.total || 0),
+      assets: totalAssets,
+      debts: totalDebts,
+      vehicleEstimate,
+      separationObligation: Math.round(separationObligation),
+      netWorthGross: totalAssets - totalDebts,
+      netWorthPostSeparation: totalAssets - totalDebts - separationObligation,
+      netWorth: totalAssets - totalDebts - separationObligation, // post-separation is the real number
     };
-  } catch { return { assets: 0, debts: 0, netWorth: 0 }; }
+  } catch { return { assets: 0, debts: 0, netWorth: 0, netWorthGross: 0, netWorthPostSeparation: 0, separationObligation: 0 }; }
 }
 
 // ── Meta ──

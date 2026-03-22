@@ -47,6 +47,19 @@ const INTERVIEWS = {
       "Any pain or discomfort to report?",
     ],
   },
+  tax: {
+    name: "Tax Prep Check-in",
+    questions: [
+      "Have you downloaded your 2025 W-2 from MyPay yet?",
+      "Have you gotten your Robinhood 1099 for 2025? Any stocks sold this year?",
+      "Did you take any money out of your TSP or retirement accounts this year?",
+      "Any major medical expenses this year beyond insurance — prescriptions, procedures, equipment?",
+      "Any charitable donations or gifts over five hundred dollars?",
+      "Did you pay any property taxes on the Palisade or other vehicles?",
+      "Any side income, freelance work, or cash payments received?",
+      "Filing status — are you planning to file as married filing separately, or has anything changed with the divorce?",
+    ],
+  },
   estate: {
     name: "Estate Update",
     questions: [
