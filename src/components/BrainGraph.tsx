@@ -205,6 +205,14 @@ export default function BrainGraph() {
     const sidebarWidth = selectedNode ? 350 : 0;
     const graphWidth = width - leftPanelWidth - sidebarWidth;
 
+    // Preserve previous positions for smooth transitions
+    const prevPositions: Record<string, { x: number; y: number }> = {};
+    simNodesRef.current.forEach(n => {
+      if (n.x !== undefined && n.y !== undefined) {
+        prevPositions[n.id] = { x: n.x, y: n.y };
+      }
+    });
+
     // Filter nodes based on expanded domains — collapsed = center + domains only
     const visibleNodes = graphData.nodes.filter((n) => {
       if (n.type === "center" || n.type === "domain") return true;
@@ -219,17 +227,22 @@ export default function BrainGraph() {
       e => visibleIds.has(e.source) && visibleIds.has(e.target)
     );
 
-    // Deep copy for D3 mutation
-    const nodes: SimNode[] = visibleNodes.map((n) => ({ ...n }));
+    // Deep copy for D3 mutation — restore previous positions for smooth transitions
+    const nodes: SimNode[] = visibleNodes.map((n) => {
+      const prev = prevPositions[n.id];
+      return prev ? { ...n, x: prev.x, y: prev.y } : { ...n };
+    });
     const edges: SimEdge[] = visibleEdges.map((e) => ({
       ...e,
       source: e.source,
       target: e.target,
     }));
 
-    // Force simulation
+    // Force simulation — use lower alpha if we have previous positions (smoother transitions)
+    const hasPositions = Object.keys(prevPositions).length > 0;
     const simulation = d3
       .forceSimulation<SimNode>(nodes)
+      .alpha(hasPositions ? 0.3 : 1)
       .force(
         "link",
         d3
@@ -400,10 +413,11 @@ export default function BrainGraph() {
     // Interactions
     node
       .on("click", (_event, d) => {
+        _event.stopPropagation();
         if (d.type === "domain") {
           toggleDomain(d.id);
         }
-        setSelectedNode((prev) => (prev?.id === d.id ? null : d));
+        setSelectedNode(d);
       })
       .on("mouseenter", (_event, d) => {
         setHoveredNode(d);
