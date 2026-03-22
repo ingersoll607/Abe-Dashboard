@@ -48,7 +48,7 @@ const nodes: BrainNode[] = [
   { id: "legal-will", label: "Will & POA", domain: "legal", type: "entity", status: "critical", urgency: 1, freshness: 0, summary: "NONE ON FILE. Must create ASAP. Attorney offered discount on estate planning." },
   { id: "legal-divorce", label: "Divorce", domain: "legal", type: "entity", status: "attention", urgency: 0.7, freshness: 0.6, summary: "Attorney TBD. Research & consult scheduled 3/24." },
   { id: "legal-mva", label: "MVA Settlement", domain: "legal", type: "entity", status: "attention", urgency: 0.7, freshness: 0.5, summary: "$3K + $8K medical. Rawlings/BCBS subrogation. DO NOT SIGN YET." },
-  { id: "legal-nc-atty", label: "NC Divorce Attorney", domain: "legal", type: "entity", status: "attention", urgency: 0.6, freshness: 0.5, summary: "Research scheduled 3/24." },
+  { id: "legal-nc-atty", label: "Divorce Attorney", domain: "legal", type: "entity", status: "attention", urgency: 0.6, freshness: 0.5, summary: "VA jurisdiction (separation agreement signed in VA). Research scheduled 3/24." },
 
   // Domain: Property
   { id: "d-property", label: "Property", domain: "property", type: "domain", status: "attention", urgency: 0.6, freshness: 0.6, summary: "Home, RV (7 repairs), Palisade, motorcycle. Storage unit.", children: ["prop-home","prop-rv","prop-palisade","prop-motorcycle","prop-storage","prop-rv-lot"] },
@@ -176,7 +176,7 @@ export const ALERTS = [
   { text: "Hematocrit elevated (50.2%)", domain: "Health", priority: "critical" as const, nodeId: "health-hematocrit" },
   { text: "OPM/FERS — 7+ months pending", domain: "Estate", priority: "high" as const, nodeId: "er-opm" },
   { text: "Estate attorney — no follow-up", domain: "Estate", priority: "high" as const, nodeId: "er-herman" },
-  { text: "Divorce discovery pending", domain: "Legal", priority: "high" as const, nodeId: "legal-divorce" },
+  { text: "Divorce — no attorney retained, research 3/24", domain: "Legal", priority: "high" as const, nodeId: "legal-divorce" },
 ];
 
 export const MOCK_GRAPH: BrainGraph = {
