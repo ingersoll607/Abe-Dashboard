@@ -114,6 +114,20 @@ export async function getTaxSummary(): Promise<TaxSummary | null> {
   return apiFetch<TaxSummary>("/api/tax-status");
 }
 
+export interface Recommendation {
+  id: number;
+  domain: string;
+  recommendation_text: string;
+  reasoning: string | null;
+  confidence: number | null;
+  urgency: string;
+  status: string;
+}
+
+export async function getRecommendations(): Promise<{ recommendations: Recommendation[] } | null> {
+  return apiFetch<{ recommendations: Recommendation[] }>("/api/recommendations");
+}
+
 export async function isServerRunning(): Promise<boolean> {
   try {
     const res = await fetch(`${API_BASE}/api/health-check`, {

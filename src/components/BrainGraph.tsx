@@ -6,7 +6,8 @@ import type { BrainNode, BrainEdge, BrainGraph } from "@/lib/graph-types";
 import { DOMAIN_COLORS, STATUS_COLORS, NODE_SIZE } from "@/lib/graph-types";
 import { MOCK_GRAPH, ALERTS } from "@/lib/mock-graph-data";
 import { AlertTriangle, ChevronRight, Wifi, WifiOff } from "lucide-react";
-import { getHealthSummary, getFinanceSummary, getEstateSummary, getNetWorth, getTaxSummary, type HealthSummary, type FinanceSummary, type EstateSummary, type NetWorth, type TaxSummary } from "@/lib/api-client";
+import { getHealthSummary, getFinanceSummary, getEstateSummary, getNetWorth, getTaxSummary, getRecommendations, type HealthSummary, type FinanceSummary, type EstateSummary, type NetWorth, type TaxSummary, type Recommendation } from "@/lib/api-client";
+import { Lightbulb } from "lucide-react";
 
 interface SimNode extends BrainNode, d3.SimulationNodeDatum {}
 interface SimEdge extends d3.SimulationLinkDatum<SimNode> {
@@ -49,6 +50,7 @@ export default function BrainGraph() {
   const [liveEstate, setLiveEstate] = useState<EstateSummary | null>(null);
   const [liveNetWorth, setLiveNetWorth] = useState<NetWorth | null>(null);
   const [liveTax, setLiveTax] = useState<TaxSummary | null>(null);
+  const [liveRecs, setLiveRecs] = useState<Recommendation[]>([]);
   const [isLive, setIsLive] = useState(false);
 
   // Fetch live data from Express API
@@ -59,12 +61,14 @@ export default function BrainGraph() {
       getEstateSummary(),
       getNetWorth(),
       getTaxSummary(),
-    ]).then(([health, finance, estate, nw, tax]) => {
+      getRecommendations(),
+    ]).then(([health, finance, estate, nw, tax, recs]) => {
       if (health) { setLiveHealth(health); setIsLive(true); }
       if (finance) setLiveFinance(finance);
       if (estate) setLiveEstate(estate);
       if (nw) setLiveNetWorth(nw);
       if (tax) setLiveTax(tax);
+      if (recs?.recommendations) setLiveRecs(recs.recommendations);
     });
   }, []);
 
@@ -577,6 +581,28 @@ export default function BrainGraph() {
               })}
             </div>
           </div>
+
+          {/* Twin's Recommendations */}
+          {liveRecs.length > 0 && (
+            <div className="mb-4">
+              <div className="text-[10px] text-[#8b5cf6] uppercase tracking-wider font-semibold mb-2 flex items-center gap-1.5">
+                <Lightbulb size={11} /> Twin Recommends
+              </div>
+              {liveRecs.map((rec) => (
+                <div
+                  key={rec.id}
+                  className="mb-1.5 px-3 py-2 rounded-lg text-[11px] leading-relaxed"
+                  style={{
+                    background: rec.urgency === "high" ? "rgba(139,92,246,0.1)" : "rgba(139,92,246,0.06)",
+                    borderLeft: `2px solid ${rec.urgency === "high" ? "#8b5cf6" : "#6366f150"}`,
+                  }}
+                >
+                  <div className="text-[#c4b5fd]">{rec.recommendation_text}</div>
+                  <div className="text-[9px] text-[#64748b] mt-0.5 capitalize">{rec.domain} · {rec.urgency}</div>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Quick tip */}
           <div className="text-[9px] text-[#334155] text-center mt-4">
