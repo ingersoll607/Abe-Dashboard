@@ -99,7 +99,8 @@ export default function InterviewMode() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [pendingValues, setPendingValues] = useState<ParsedValue[]>([]);
-  const [status, setStatus] = useState<"idle" | "listening" | "parsing" | "speaking" | "done">("idle");
+  const [status, setStatus] = useState<"idle" | "listening" | "parsing" | "speaking" | "confirming-inline" | "done">("idle");
+  const [inlineParsed, setInlineParsed] = useState<Array<ParsedValue & { checked: boolean; editValue: string }>>([]);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -154,6 +155,57 @@ export default function InterviewMode() {
     setStatus("listening");
   }, []);
 
+  const advanceToNextQuestion = useCallback(async () => {
+    if (!interview) return;
+    const nextIdx = questionIndex + 1;
+    const questions = INTERVIEWS[interview].questions;
+
+    if (nextIdx < questions.length) {
+      setQuestionIndex(nextIdx);
+      const nextQ = questions[nextIdx];
+      setMessages(prev => [...prev, { role: "abe", text: nextQ }]);
+      setStatus("speaking");
+      await speak(nextQ);
+      setStatus("idle");
+    } else {
+      const total = pendingValues.length;
+      const endText = total > 0
+        ? `Interview complete. ${total} data points captured and stored. Good session.`
+        : "Interview complete. Thanks for the update.";
+      setMessages(prev => [...prev, { role: "abe", text: endText }]);
+      await speak(endText);
+      setStatus("done");
+    }
+  }, [interview, questionIndex, pendingValues]);
+
+  const approveInlineValues = useCallback(async () => {
+    const approved = inlineParsed.filter(v => v.checked).map(v => ({ ...v, result_value: v.editValue }));
+    if (approved.length > 0) {
+      try {
+        await fetch("http://localhost:3847/api/ingest-confirm", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: "Bearer abe-open-brain-2026" },
+          body: JSON.stringify({ labs: approved, source: "interview" }),
+        });
+        setPendingValues(prev => [...prev, ...approved]);
+        const storedText = `Stored ${approved.length} value${approved.length > 1 ? "s" : ""}. Moving on.`;
+        setMessages(prev => [...prev, { role: "abe", text: storedText }]);
+        await speak(storedText);
+      } catch {
+        setMessages(prev => [...prev, { role: "abe", text: "Couldn't store — server may be down. Moving on." }]);
+      }
+    }
+    setInlineParsed([]);
+    await advanceToNextQuestion();
+  }, [inlineParsed, advanceToNextQuestion]);
+
+  const skipInlineValues = useCallback(async () => {
+    setInlineParsed([]);
+    setMessages(prev => [...prev, { role: "abe", text: "Skipped. Moving on." }]);
+    await speak("Skipped. Moving on.");
+    await advanceToNextQuestion();
+  }, [advanceToNextQuestion]);
+
   const stopAndProcess = useCallback(async () => {
     if (recognitionRef.current) recognitionRef.current.stop();
     setIsListening(false);
@@ -174,37 +226,24 @@ export default function InterviewMode() {
       const data = await res.json();
 
       if (data.parsed && data.parsed.length > 0) {
-        setPendingValues(prev => [...prev, ...data.parsed]);
-        // Abe acknowledges the data
-        const ackText = `Got it. I captured: ${data.parsed.map((p: ParsedValue) => `${p.test_name} ${p.result_value} ${p.unit}`).join(", ")}.`;
+        // Abe acknowledges conversationally
+        const names = data.parsed.map((p: ParsedValue) => `${p.test_name} at ${p.result_value}`).join(", ");
+        const ackText = `I heard ${names}. Check the values below and approve what's correct.`;
         setMessages(prev => [...prev, { role: "abe", text: ackText, parsed: data.parsed }]);
-        await speak(ackText);
+        await speak(`I heard ${names}. Please review and approve.`);
+
+        // Show editable inline confirmation
+        setInlineParsed(data.parsed.map((p: ParsedValue) => ({ ...p, checked: true, editValue: p.result_value })));
+        setStatus("confirming-inline");
+        setTranscript("");
+        return; // Don't advance to next question yet
       }
     } catch {
       // Server not running — still continue the interview
     }
 
-    // Move to next question
-    const nextIdx = questionIndex + 1;
-    const questions = INTERVIEWS[interview].questions;
-
-    if (nextIdx < questions.length) {
-      setQuestionIndex(nextIdx);
-      const nextQ = questions[nextIdx];
-      setMessages(prev => [...prev, { role: "abe", text: nextQ }]);
-      setStatus("speaking");
-      await speak(nextQ);
-      setStatus("idle");
-    } else {
-      // Interview complete
-      const endText = pendingValues.length > 0
-        ? `Interview complete. I captured ${pendingValues.length} data points. Shall I store them?`
-        : "Interview complete. Thanks for the update.";
-      setMessages(prev => [...prev, { role: "abe", text: endText }]);
-      await speak(endText);
-      setStatus("done");
-    }
-
+    // No values found — move to next question
+    await advanceToNextQuestion();
     setTranscript("");
   }, [transcript, interview, questionIndex, pendingValues]);
 
@@ -329,7 +368,37 @@ export default function InterviewMode() {
 
           {/* Controls */}
           <div className="px-4 py-3 border-t border-[#1e293b] shrink-0">
-            {status === "done" && pendingValues.length > 0 ? (
+            {status === "confirming-inline" && inlineParsed.length > 0 ? (
+              <div>
+                <div className="text-[10px] text-[#64748b] uppercase tracking-wider mb-2">Review & Edit:</div>
+                {inlineParsed.map((v, i) => (
+                  <div key={i} className="flex items-center gap-2 mb-1.5">
+                    <input
+                      type="checkbox"
+                      checked={v.checked}
+                      onChange={() => setInlineParsed(prev => prev.map((p, j) => j === i ? { ...p, checked: !p.checked } : p))}
+                      className="w-3.5 h-3.5 accent-[#6366f1]"
+                    />
+                    <span className="text-[11px] text-[#94a3b8] w-24 shrink-0">{v.test_name}</span>
+                    <input
+                      type="text"
+                      value={v.editValue}
+                      onChange={(e) => setInlineParsed(prev => prev.map((p, j) => j === i ? { ...p, editValue: e.target.value } : p))}
+                      className="flex-1 bg-[#1e293b] border border-[#334155] rounded px-2 py-1 text-[12px] text-[#e2e8f0] outline-none focus:border-[#6366f1]"
+                    />
+                    <span className="text-[10px] text-[#64748b]">{v.unit}</span>
+                  </div>
+                ))}
+                <div className="flex gap-2 mt-2">
+                  <button onClick={approveInlineValues} className="flex-1 py-2 rounded-lg border-none cursor-pointer text-[12px] font-semibold bg-[#10b981] text-white flex items-center justify-center gap-1">
+                    <Check size={14} /> Approve & Store
+                  </button>
+                  <button onClick={skipInlineValues} className="flex-1 py-2 rounded-lg border-none cursor-pointer text-[12px] font-semibold bg-[#334155] text-[#94a3b8] flex items-center justify-center gap-1">
+                    <X size={14} /> Skip
+                  </button>
+                </div>
+              </div>
+            ) : status === "done" && pendingValues.length > 0 ? (
               <div className="flex gap-2">
                 <button
                   onClick={storeAll}
