@@ -350,6 +350,192 @@ app.get("/api/search", (req, res) => {
   });
 });
 
+// ── INGEST TEXT: Parse natural language or OCR text into structured health data ──
+app.post("/api/ingest-text", (req, res) => {
+  const { text, source } = req.body;
+  if (!text) return res.status(400).json({ error: "Missing text field" });
+
+  // Parse lab values from natural language or OCR text
+  const parsed = [];
+  const lines = text.split(/[\n,;]+/).map(l => l.trim()).filter(Boolean);
+
+  // Common lab value patterns
+  const labPatterns = [
+    // "A1C 5.8" or "A1C: 5.8%" or "Hemoglobin A1c 5.8"
+    /(?:hemoglobin\s*)?a1c[\s:]*(\d+\.?\d*)\s*%?/i,
+    /hba1c[\s:]*(\d+\.?\d*)/i,
+    // "cholesterol 210" or "total cholesterol: 210 mg/dL"
+    /(?:total\s+)?cholesterol[\s:]*(\d+\.?\d*)\s*(?:mg\/dl)?/i,
+    // "triglycerides 150"
+    /triglycerides?[\s:]*(\d+\.?\d*)/i,
+    // "HDL 45" or "HDL cholesterol 45"
+    /hdl[\s:]*(?:cholesterol[\s:]*)?\s*(\d+\.?\d*)/i,
+    // "LDL 120"
+    /ldl[\s:]*(?:cholesterol[\s:]*)?\s*(\d+\.?\d*)/i,
+    // "glucose 94" or "blood sugar 94"
+    /(?:glucose|blood\s*sugar|fasting\s*glucose)[\s:]*(\d+\.?\d*)/i,
+    // "hematocrit 54.1" or "HCT 54.1"
+    /(?:hematocrit|hct)[\s:]*(\d+\.?\d*)\s*%?/i,
+    // "hemoglobin 17.6" (not A1C)
+    /^hemoglobin[\s:]*(\d+\.?\d*)\s*(?:g\/dl)?$/im,
+    // "testosterone 593"
+    /^testosterone[\s:]*(\d+\.?\d*)\s*(?:ng\/dl)?$/im,
+    // "free testosterone 5.1" or "free T 5.1"
+    /free\s*(?:testosterone|t)[\s:]*(\d+\.?\d*)/i,
+    // "TSH 0.87"
+    /tsh[\s:]*(\d+\.?\d*)/i,
+    // "T4 1.89" or "free T4 1.89"
+    /(?:free\s*)?t4[\s:]*(\d+\.?\d*)/i,
+    // "PSA 0.7"
+    /psa[\s:]*(\d+\.?\d*)/i,
+    // "blood pressure 130/82" or "BP 130/82"
+    /(?:blood\s*pressure|bp)[\s:]*(\d+)\s*\/\s*(\d+)/i,
+    // "uric acid 4.5"
+    /uric\s*acid[\s:]*(\d+\.?\d*)/i,
+    // "creatinine 0.96"
+    /creatinine[\s:]*(\d+\.?\d*)/i,
+    // "weight 210" or "weight 210 lbs"
+    /weight[\s:]*(\d+\.?\d*)\s*(?:lbs?|pounds?)?/i,
+  ];
+
+  const labMeta = {
+    a1c: { name: "Hemoglobin A1C", unit: "%", range: "4.0-5.6", panel: "Metabolic", validRange: [3, 15] },
+    hba1c: { name: "Hemoglobin A1C", unit: "%", range: "4.0-5.6", panel: "Metabolic", validRange: [3, 15] },
+    cholesterol: { name: "Cholesterol Total", unit: "mg/dL", range: "100-199", panel: "Lipid Panel", validRange: [50, 500] },
+    triglycerides: { name: "Triglycerides", unit: "mg/dL", range: "0-149", panel: "Lipid Panel", validRange: [20, 1000] },
+    hdl: { name: "HDL Cholesterol", unit: "mg/dL", range: ">39", panel: "Lipid Panel", validRange: [10, 120] },
+    ldl: { name: "LDL Cholesterol", unit: "mg/dL", range: "0-99", panel: "Lipid Panel", validRange: [10, 400] },
+    glucose: { name: "Glucose", unit: "mg/dL", range: "70-99", panel: "Metabolic", validRange: [30, 600] },
+    hematocrit: { name: "Hematocrit", unit: "%", range: "37.5-51.0", panel: "CBC", validRange: [15, 70] },
+    hemoglobin: { name: "Hemoglobin", unit: "g/dL", range: "13.0-17.7", panel: "CBC", validRange: [5, 25] },
+    testosterone: { name: "Testosterone", unit: "ng/dL", range: "264-916", panel: "Hormone", validRange: [10, 2000] },
+    free_testosterone: { name: "Free Testosterone Direct", unit: "pg/mL", range: "7.2-24.0", panel: "Hormone", validRange: [0.1, 50] },
+    tsh: { name: "TSH", unit: "uIU/mL", range: "0.450-4.500", panel: "Thyroid", validRange: [0.01, 50] },
+    t4: { name: "T4 Free Direct", unit: "ng/dL", range: "0.82-1.77", panel: "Thyroid", validRange: [0.1, 10] },
+    psa: { name: "Prostate Specific Ag", unit: "ng/mL", range: "0.0-4.0", panel: "Cancer Screening", validRange: [0, 100] },
+    uric_acid: { name: "Uric Acid", unit: "mg/dL", range: "3.8-8.4", panel: "Metabolic", validRange: [1, 20] },
+    creatinine: { name: "Creatinine", unit: "mg/dL", range: "0.76-1.27", panel: "Metabolic", validRange: [0.1, 15] },
+  };
+
+  // Try to extract lab values
+  const fullText = text.toLowerCase();
+  for (const [key, meta] of Object.entries(labMeta)) {
+    const patterns = labPatterns.filter(p => {
+      const src = p.source.toLowerCase();
+      return src.includes(key) || src.includes(meta.name.toLowerCase().split(" ")[0]);
+    });
+
+    // Simple regex match on full text
+    for (const pattern of labPatterns) {
+      const match = fullText.match(pattern);
+      if (match) {
+        const patternKey = pattern.source.toLowerCase();
+        // Find which lab this pattern matches
+        for (const [lk, lm] of Object.entries(labMeta)) {
+          if (patternKey.includes(lk) || patternKey.includes(lm.name.toLowerCase().split(" ")[0])) {
+            const value = parseFloat(match[1]);
+            if (!isNaN(value) && value >= lm.validRange[0] && value <= lm.validRange[1]) {
+              // Determine status
+              let status = "normal";
+              const rangeParts = lm.range.match(/([\d.]+)-([\d.]+)/);
+              if (rangeParts) {
+                const low = parseFloat(rangeParts[1]);
+                const high = parseFloat(rangeParts[2]);
+                if (value < low) status = "low";
+                if (value > high) status = "high";
+              }
+
+              if (!parsed.find(p => p.test_name === lm.name)) {
+                parsed.push({
+                  test_name: lm.name,
+                  result_value: match[1],
+                  unit: lm.unit,
+                  reference_range: lm.range,
+                  status,
+                  panel_group: lm.panel,
+                  flagged: status !== "normal",
+                  validation: value >= lm.validRange[0] && value <= lm.validRange[1] ? "valid" : "suspect",
+                });
+              }
+            } else if (!isNaN(value)) {
+              // Out of valid range — flag for confirmation
+              if (!parsed.find(p => p.test_name === lm.name)) {
+                parsed.push({
+                  test_name: lm.name,
+                  result_value: match[1],
+                  unit: lm.unit,
+                  reference_range: lm.range,
+                  status: "unknown",
+                  panel_group: lm.panel,
+                  flagged: true,
+                  validation: "suspect — value outside expected range, please confirm",
+                });
+              }
+            }
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  // Check for blood pressure (special — two values)
+  const bpMatch = fullText.match(/(?:blood\s*pressure|bp)[\s:]*(\d+)\s*\/\s*(\d+)/i);
+  if (bpMatch) {
+    parsed.push(
+      { test_name: "Blood Pressure Systolic", result_value: bpMatch[1], unit: "mmHg", status: parseInt(bpMatch[1]) > 130 ? "high" : "normal", validation: "valid", flagged: parseInt(bpMatch[1]) > 130 },
+      { test_name: "Blood Pressure Diastolic", result_value: bpMatch[2], unit: "mmHg", status: parseInt(bpMatch[2]) > 80 ? "high" : "normal", validation: "valid", flagged: parseInt(bpMatch[2]) > 80 }
+    );
+  }
+
+  res.json({
+    parsed,
+    count: parsed.length,
+    source: source || "voice",
+    rawText: text,
+    confirmationRequired: true,
+    confirmEndpoint: "/api/ingest-confirm",
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// ── INGEST CONFIRM: Write confirmed parsed data to SQLite ──
+app.post("/api/ingest-confirm", (req, res) => {
+  const { labs, date, provider, source } = req.body;
+  if (!labs || !Array.isArray(labs)) return res.status(400).json({ error: "Missing labs array" });
+
+  try {
+    const db = (await import("./db/queries.mjs")).default;
+    // Use direct SQLite for writes
+    const Database = (await import("better-sqlite3")).default;
+    const dbPath = path.join(process.env.HOME, "Documents/Claude/Memory/digital-twin.db");
+    const writeDb = new Database(dbPath);
+
+    const insert = writeDb.prepare(
+      "INSERT INTO health_labs (test_date, test_name, result_value, unit, reference_range, status, panel_group, lab_provider, ordering_provider, source_file, flagged) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    );
+
+    const testDate = date || new Date().toISOString().split("T")[0];
+    const tx = writeDb.transaction(() => {
+      for (const lab of labs) {
+        insert.run(
+          testDate, lab.test_name, lab.result_value, lab.unit || null,
+          lab.reference_range || null, lab.status || "normal",
+          lab.panel_group || null, provider || "Unknown",
+          null, source || "voice-input",
+          lab.flagged ? 1 : 0
+        );
+      }
+    });
+    tx();
+    writeDb.close();
+
+    res.json({ status: "stored", count: labs.length, date: testDate, timestamp: new Date().toISOString() });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── CORRECT: Write corrections back to data store ──
 app.post("/api/correct", (req, res) => {
   const { target, field, value, source } = req.body;
