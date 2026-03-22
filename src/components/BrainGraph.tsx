@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useState, useCallback } from "react";
+import { useRef, useEffect, useState, useCallback, useMemo } from "react";
 import * as d3 from "d3";
 import type { BrainNode, BrainEdge, BrainGraph } from "@/lib/graph-types";
 import { DOMAIN_COLORS, STATUS_COLORS, NODE_SIZE } from "@/lib/graph-types";
@@ -73,7 +73,7 @@ export default function BrainGraph() {
   }, []);
 
   // Override mock health nodes with live data when available
-  const graphData = (() => {
+  const graphData = useMemo(() => {
     if (!liveHealth) return MOCK_GRAPH;
 
     const updatedNodes = MOCK_GRAPH.nodes.map(node => {
@@ -153,7 +153,7 @@ export default function BrainGraph() {
     }
 
     return { ...MOCK_GRAPH, nodes: updatedNodes };
-  })();
+  }, [liveHealth, liveFinance, liveEstate, liveNetWorth, liveTax]);
 
   const toggleDomain = useCallback((domainId: string) => {
     setExpandedDomains(prev => {

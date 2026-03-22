@@ -44,7 +44,7 @@ const nodes: BrainNode[] = [
   { id: "ei-excellus", label: "Excellus/BCBS", domain: "estate", type: "entity", status: "attention", urgency: 0.4, freshness: 0.4, summary: "Send paperwork." },
 
   // Domain: Legal / Personal
-  { id: "d-legal", label: "Personal & Legal", domain: "legal", type: "domain", status: "critical", urgency: 0.9, freshness: 0.5, summary: "Will & POA MISSING. Divorce pending. MVA settlement unresolved.", children: ["legal-will","legal-divorce","legal-mva","legal-nc-atty"] },
+  { id: "d-legal", label: "Personal & Legal", domain: "legal", type: "domain", status: "critical", urgency: 0.9, freshness: 0.5, summary: "Will & POA MISSING. Divorce pending. MVA settlement unresolved.", children: ["legal-will","legal-divorce","legal-sep-agreement","legal-mva","legal-nc-atty"] },
   { id: "legal-will", label: "Will & POA", domain: "legal", type: "entity", status: "critical", urgency: 1, freshness: 0, summary: "NONE ON FILE. Must create ASAP. Attorney offered discount on estate planning." },
   { id: "legal-divorce", label: "Divorce", domain: "legal", type: "entity", status: "attention", urgency: 0.7, freshness: 0.6, summary: "Attorney TBD. Research & consult scheduled 3/24." },
   { id: "legal-sep-agreement", label: "Separation Agreement", domain: "legal", type: "entity", status: "attention", urgency: 0.6, freshness: 0.8, summary: "Signed Sept 2022, VA. Michele gets 45% TSP (~$301K). Health insurance obligation MET (expired June 2023 but she still has coverage). Informal FERS deal — verbal only." },
